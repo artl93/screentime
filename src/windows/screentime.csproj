@@ -1,16 +1,31 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <OutputType>Exe</OutputType>
-    <TargetFramework>net8.0</TargetFramework>
+    <OutputType>WinExe</OutputType>
+    <!-- <OutputType>Exe</OutputType> -->
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <TargetFramework>net8.0-windows</TargetFramework>
-    
+    <UseWindowsForms>true</UseWindowsForms>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="Microsoft.Win32.SystemEvents" Version="8.0.0" />
+    <PackageReference Include="System.DirectoryServices.AccountManagement" Version="9.0.0" />
+    <!-- PackageReference Include="Microsoft.WindowsAppSDK" Version="1.6.241114003" / -->
   </ItemGroup>
-
+  <ItemGroup>
+    <None Update="install.cmd">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="autorun.reg">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+  <Target Name="ZipOutput" AfterTargets="Build">
+    <ItemGroup>
+      <FilesToZip Include="$(OutputPath)**\*.*" />
+    </ItemGroup>
+    <Exec Command="powershell Compress-Archive -Path $(OutputPath) -DestinationPath $(OutputPath)screentime.zip" />
+  </Target>
 </Project>
