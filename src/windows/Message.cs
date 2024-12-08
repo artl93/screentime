@@ -8,3 +8,7 @@ public class ServerMessage
     public string Icon { get; set; }
     public string Action { get; set; }
 }
+
+record UserStatus(TimeSpan LoggedInTime, string Icon, string Action, Status Status, TimeSpan dailyTimeLimit);
+
+enum Status { Okay, Warn, Error }
