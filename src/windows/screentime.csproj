@@ -10,7 +10,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.Win32.SystemEvents" Version="8.0.0" />
+    <PackageReference Include="Microsoft.Win32.SystemEvents" Version="9.0.0" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
     <PackageReference Include="System.DirectoryServices.AccountManagement" Version="9.0.0" />
     <!-- PackageReference Include="Microsoft.WindowsAppSDK" Version="1.6.241114003" / -->
   </ItemGroup>
@@ -26,6 +27,6 @@
     <ItemGroup>
       <FilesToZip Include="$(OutputPath)**\*.*" />
     </ItemGroup>
-    <Exec Command="powershell Compress-Archive -Path $(OutputPath) -DestinationPath $(OutputPath)screentime.zip" />
+    <!-- Exec Command="powershell Compress-Archive -Path $(OutputPath) -DestinationPath $(OutputPath)screentime.zip" / -->
   </Target>
 </Project>
