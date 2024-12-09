@@ -1,0 +1,11 @@
+{
+  "profiles": {
+    "local debug": {
+      "commandName": "Project",
+      "commandLineArgs": "devmode"
+    },
+    "normal": {
+      "commandName": "Project"
+    }
+  }
+}

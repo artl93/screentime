@@ -2,24 +2,32 @@
 
 public class IdleTimeDetector
 {
+
+    public static TimeSpan GetIdleTime()
+    {
+        var lastInputInfo = new Windows.LASTINPUTINFO();
+        lastInputInfo.cbSize = (uint)Marshal.SizeOf(lastInputInfo);
+        Windows.GetLastInputInfo(ref lastInputInfo);
+
+        uint idleTime = (uint)Environment.TickCount - lastInputInfo.dwTime;
+        return TimeSpan.FromMilliseconds(idleTime);
+    }
+}
+
+public class Windows
+{
     [DllImport("user32.dll")]
-    static extern bool GetLastInputInfo(ref LASTINPUTINFO plii);
+    public static extern bool LockWorkStation();
+
 
     [StructLayout(LayoutKind.Sequential)]
-    struct LASTINPUTINFO
+    public struct LASTINPUTINFO
     {
         public uint cbSize;
         public uint dwTime;
     }
 
-    public static TimeSpan GetIdleTime()
-    {
-        LASTINPUTINFO lastInputInfo = new LASTINPUTINFO();
-        lastInputInfo.cbSize = (uint)Marshal.SizeOf(lastInputInfo);
-        GetLastInputInfo(ref lastInputInfo);
-
-        uint idleTime = (uint)Environment.TickCount - lastInputInfo.dwTime;
-        return TimeSpan.FromMilliseconds(idleTime);
-    }
+    [DllImport("user32.dll")]
+    public static extern bool GetLastInputInfo(ref LASTINPUTINFO plii);
 }
 
