@@ -19,13 +19,14 @@ icon.Icon = SystemIcons.Application;
 icon.ContextMenuStrip = new ContextMenuStrip();
 icon.ContextMenuStrip.Items.Add("Exit", null, (s, e) => { icon.Visible = false; Environment.Exit(0); });
 icon.Visible = true;
+icon.Text = "Connecting...";
 
 var lastMessageShown = DateTimeOffset.MinValue;
 
 // create the server
 // if "devmode" is passed as an argument, use the development server
 var baseUri = (args.Length > 0 && args[0] == "devmode") ? "https://localhost:7186" : "https://screentime.azurewebsites.net";
-var server = new screentime.Server(baseUri);
+var server = new screentime.ScreenTimeStateClient(baseUri);
 
 // get current user's logged in email from Microsoft identity 
 
@@ -201,7 +202,7 @@ Application.ApplicationExit += (s, e) =>
 Application.Run(new HiddenForm(task));
 
 
-async void ShowMessageAsync(NotifyIcon icon, screentime.Server server, UserConfiguration configuration)
+async void ShowMessageAsync(NotifyIcon icon, screentime.ScreenTimeStateClient server, UserConfiguration configuration)
 {
     // only show every 30 seconds
     if (DateTimeOffset.Now - lastMessageShown < TimeSpan.FromSeconds(configuration.WarningIntervalSeconds))
