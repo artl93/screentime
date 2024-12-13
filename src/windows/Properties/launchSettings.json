@@ -1,11 +1,15 @@
 {
   "profiles": {
-    "local debug": {
+    "local": {
       "commandName": "Project",
-      "commandLineArgs": "devmode"
+      "commandLineArgs": "local"
     },
-    "normal": {
+    "server": {
       "commandName": "Project"
+    },
+    "local server": {
+      "commandName": "Project",
+      "commandLineArgs": "develop"
     }
   }
 }

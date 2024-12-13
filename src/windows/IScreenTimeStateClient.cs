@@ -1,12 +1,12 @@
 ﻿
 namespace screentime
 {
-    internal interface IScreenTimeStateClient
+    public interface IScreenTimeStateClient : IDisposable
     {
-        void EndSessionAsync();
-        Task<UserStatus?> GetInteractiveTimeAsync();
-        Task<ServerMessage?> GetMessage();
-        Task<UserConfiguration?> GetUserConfigurationAsync();
-        void StartSessionAsync();
+        public void EndSessionAsync();
+        public Task<UserStatus?> GetInteractiveTimeAsync();
+        public Task<UserMessage?> GetMessage();
+        public Task<UserConfiguration?> GetUserConfigurationAsync();
+        public void StartSessionAsync();
     }
 }
