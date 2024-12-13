@@ -1,11 +1,11 @@
 {
   "profiles": {
     "local": {
-      "commandName": "Project",
-      "commandLineArgs": "local"
+      "commandName": "Project"
     },
     "server": {
-      "commandName": "Project"
+      "commandName": "Project",
+      "commandLineArgs": "live"
     },
     "local server": {
       "commandName": "Project",

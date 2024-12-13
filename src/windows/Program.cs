@@ -28,8 +28,8 @@ var firstArg = args.Length > 0 ? args[0] : string.Empty;
 IScreenTimeStateClient client = firstArg switch
 {
     "develop" => new screentime.ScreenTimeStateClient("https://localhost:7186"),
-    "local" => new screentime.ScreenTimeLocalStateClient(),
-    _ => new screentime.ScreenTimeStateClient("https://screentime.azurewebsites.net")
+    "live" => new screentime.ScreenTimeStateClient("https://screentime.azurewebsites.net"),
+    _ => new screentime.ScreenTimeLocalStateClient()
 };
     
 
