@@ -10,7 +10,7 @@ using System.Threading.Tasks;
 using System.Xml.Linq;
 using static System.Windows.Forms.VisualStyles.VisualStyleElement.TaskbarClock;
 
-namespace screentime
+namespace ScreenTime
 {
     internal class ScreenTimeLocalService : IScreenTimeStateClient
     {

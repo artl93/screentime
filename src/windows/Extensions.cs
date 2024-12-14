@@ -1,4 +1,4 @@
-﻿namespace screentime
+﻿namespace ScreenTime
 {
     public static class Utilities
     {

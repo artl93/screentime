@@ -7,7 +7,7 @@ using System.Text.Json;
 using System.Threading.Tasks;
 using static System.Windows.Forms.VisualStyles.VisualStyleElement.TaskbarClock;
 
-namespace screentime
+namespace ScreenTime
 {
     /// <summary>
     /// A client for the ScreenTimeService
@@ -40,7 +40,7 @@ namespace screentime
                 client.Timeout = TimeSpan.FromSeconds(10);
                 client.DefaultRequestHeaders.Accept.Clear();
                 client.DefaultRequestHeaders.Accept.Add(new System.Net.Http.Headers.MediaTypeWithQualityHeaderValue("application/json"));
-                client.DefaultRequestHeaders.Add("User-Agent", "screentime");
+                client.DefaultRequestHeaders.Add("User-Agent", "ScreenTime");
             })
                 .AddStandardResilienceHandler();
 

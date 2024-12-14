@@ -3,7 +3,7 @@ using System.Text.Json;
 using System.DirectoryServices.AccountManagement;
 using System.Management;
 using System.Runtime.InteropServices;
-using screentime;
+using ScreenTime;
 
 
 DateTime startTime = DateTime.Now;
@@ -27,9 +27,9 @@ var lastMessageShown = DateTimeOffset.MinValue;
 var firstArg = args.Length > 0 ? args[0] : string.Empty;
 IScreenTimeStateClient client = firstArg switch
 {
-    "develop" => new screentime.ScreenTimeServiceClient("https://localhost:7186"),
-    "live" => new screentime.ScreenTimeServiceClient("https://screentime.azurewebsites.net"),
-    _ => new screentime.ScreenTimeLocalService()
+    "develop" => new ScreenTime.ScreenTimeServiceClient("https://localhost:7186"),
+    "live" => new ScreenTime.ScreenTimeServiceClient("https://ScreenTime.azurewebsites.net"),
+    _ => new ScreenTime.ScreenTimeLocalService()
 };
     
 

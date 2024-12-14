@@ -1,5 +1,5 @@
 ﻿
-namespace screentime
+namespace ScreenTime
 {
     public interface IScreenTimeStateClient : IDisposable
     {
