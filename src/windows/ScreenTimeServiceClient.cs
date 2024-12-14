@@ -9,8 +9,11 @@ using static System.Windows.Forms.VisualStyles.VisualStyleElement.TaskbarClock;
 
 namespace screentime
 {
-
-    internal class ScreenTimeStateClient : IScreenTimeStateClient 
+    /// <summary>
+    /// A client for the ScreenTimeService
+    /// 
+    /// </summary>
+    internal class ScreenTimeServiceClient : IScreenTimeStateClient 
     {
         enum State
         {
@@ -27,7 +30,7 @@ namespace screentime
         private bool disposedValue;
         private readonly HttpClient _client;
 
-        public ScreenTimeStateClient(string baseUri)
+        public ScreenTimeServiceClient(string baseUri)
         {
 
             var services = new ServiceCollection();
@@ -112,7 +115,7 @@ namespace screentime
         }
 
         // // TODO: override finalizer only if 'Dispose(bool disposing)' has code to free unmanaged resources
-        // ~ScreenTimeStateClient()
+        // ~ScreenTimeServiceClient()
         // {
         //     // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
         //     Dispose(disposing: false);

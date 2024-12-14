@@ -27,8 +27,8 @@ var lastMessageShown = DateTimeOffset.MinValue;
 var firstArg = args.Length > 0 ? args[0] : string.Empty;
 IScreenTimeStateClient client = firstArg switch
 {
-    "develop" => new screentime.ScreenTimeStateClient("https://localhost:7186"),
-    "live" => new screentime.ScreenTimeStateClient("https://screentime.azurewebsites.net"),
+    "develop" => new screentime.ScreenTimeServiceClient("https://localhost:7186"),
+    "live" => new screentime.ScreenTimeServiceClient("https://screentime.azurewebsites.net"),
     _ => new screentime.ScreenTimeLocalStateClient()
 };
     
