@@ -12,7 +12,7 @@ using static System.Windows.Forms.VisualStyles.VisualStyleElement.TaskbarClock;
 
 namespace screentime
 {
-    internal class ScreenTimeLocalStateClient : IScreenTimeStateClient
+    internal class ScreenTimeLocalService : IScreenTimeStateClient
     {
         const string _baseKey = @"HKEY_CURRENT_USER\Software\ScreenTime";
         DateTimeOffset lastKnownTime = DateTimeOffset.Now;
@@ -31,7 +31,7 @@ namespace screentime
 
         State currentState = State.inactive;
 
-        public ScreenTimeLocalStateClient()
+        public ScreenTimeLocalService()
         {
             // TODO: Load Configuration
             // load the configuration from the registry

@@ -29,7 +29,7 @@ IScreenTimeStateClient client = firstArg switch
 {
     "develop" => new screentime.ScreenTimeServiceClient("https://localhost:7186"),
     "live" => new screentime.ScreenTimeServiceClient("https://screentime.azurewebsites.net"),
-    _ => new screentime.ScreenTimeLocalStateClient()
+    _ => new screentime.ScreenTimeLocalService()
 };
     
 
