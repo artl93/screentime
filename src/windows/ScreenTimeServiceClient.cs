@@ -30,22 +30,9 @@ namespace ScreenTime
         private bool disposedValue;
         private readonly HttpClient _client;
 
-        public ScreenTimeServiceClient(string baseUri)
+        public ScreenTimeServiceClient(HttpClient client)
         {
-
-            var services = new ServiceCollection();
-            services.AddHttpClient("screentimeClient", client =>
-            {
-                client.BaseAddress = new Uri(baseUri);
-                client.Timeout = TimeSpan.FromSeconds(10);
-                client.DefaultRequestHeaders.Accept.Clear();
-                client.DefaultRequestHeaders.Accept.Add(new System.Net.Http.Headers.MediaTypeWithQualityHeaderValue("application/json"));
-                client.DefaultRequestHeaders.Add("User-Agent", "ScreenTime");
-            })
-                .AddStandardResilienceHandler();
-
-            var serviceProvider = services.BuildServiceProvider();
-            _client = serviceProvider.GetRequiredService<IHttpClientFactory>().CreateClient("screentimeClient");
+            _client = client;
         }
 
         public async void StartSessionAsync()
@@ -126,6 +113,12 @@ namespace ScreenTime
             // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
             Dispose(disposing: true);
             GC.SuppressFinalize(this);
+        }
+
+        internal IScreenTimeStateClient SetBaseAddress(string v)
+        {
+            _client.BaseAddress = new Uri(v);
+            return this;
         }
     }
 }

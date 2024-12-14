@@ -1,7 +1,7 @@
 ﻿
 namespace ScreenTime
 {
-    public interface IScreenTimeStateClient : IDisposable
+    public interface IScreenTimeStateClient
     {
         public void EndSessionAsync();
         public Task<UserStatus?> GetInteractiveTimeAsync();

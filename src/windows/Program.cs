@@ -4,6 +4,24 @@ using System.DirectoryServices.AccountManagement;
 using System.Management;
 using System.Runtime.InteropServices;
 using ScreenTime;
+using Microsoft.Extensions.DependencyInjection;
+
+
+
+var services = new ServiceCollection();
+services.AddHttpClient("screentimeClient", client =>
+{
+    client.Timeout = TimeSpan.FromSeconds(10);
+    client.DefaultRequestHeaders.Accept.Clear();
+    client.DefaultRequestHeaders.Accept.Add(new System.Net.Http.Headers.MediaTypeWithQualityHeaderValue("application/json"));
+    client.DefaultRequestHeaders.Add("User-Agent", "ScreenTime");
+})
+    .AddStandardResilienceHandler();
+services.AddSingleton(TimeProvider.System);
+
+var serviceProvider = services.BuildServiceProvider();
+var client = serviceProvider.GetRequiredService<IHttpClientFactory>().CreateClient("screentimeClient");
+
 
 
 DateTime startTime = DateTime.Now;
@@ -27,8 +45,8 @@ var lastMessageShown = DateTimeOffset.MinValue;
 var firstArg = args.Length > 0 ? args[0] : string.Empty;
 IScreenTimeStateClient client = firstArg switch
 {
-    "develop" => new ScreenTime.ScreenTimeServiceClient("https://localhost:7186"),
-    "live" => new ScreenTime.ScreenTimeServiceClient("https://ScreenTime.azurewebsites.net"),
+    "develop" => new ScreenTime.ScreenTimeServiceClient(client).SetBaseAddress("https://localhost:7186"),
+    "live" => new ScreenTime.ScreenTimeServiceClient(client).SetBaseAddress("https://screentime.azurewebsites.net"),
     _ => new ScreenTime.ScreenTimeLocalService()
 };
     

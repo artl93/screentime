@@ -5,49 +5,68 @@ using System;
 using System.Collections.Generic;
 using System.Dynamic;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
 using System.Xml.Linq;
 using static System.Windows.Forms.VisualStyles.VisualStyleElement.TaskbarClock;
+[assembly: InternalsVisibleTo("ScreenTimeTest")]
 
 namespace ScreenTime
 {
-    internal class ScreenTimeLocalService : IScreenTimeStateClient
+
+    public class UserConfigurationReader
     {
         const string _baseKey = @"HKEY_CURRENT_USER\Software\ScreenTime";
-        DateTimeOffset lastKnownTime = DateTimeOffset.Now;
-        TimeSpan duration = TimeSpan.Zero;
 
-        public UserConfiguration configuration;
-        private bool disposedValue;
-
-        private Task timerTask;
-
-        enum State
+        public UserConfiguration GetConfigurationFromRegistry()
         {
-            active,
-            inactive
-        }
-
-        State currentState = State.inactive;
-
-        public ScreenTimeLocalService()
-        {
-            // TODO: Load Configuration
-            // load the configuration from the registry
-
             var dailyLimit = GetRegistryIntValue(_baseKey, "DailyLimit", 120);
             var warningTime = GetRegistryIntValue(_baseKey, "WarningTime", 10);
             var warningInterval = GetRegistryIntValue(_baseKey, "WarningInterval", 60);
+            return new UserConfiguration(Guid.NewGuid(), Environment.UserName, dailyLimit, warningTime, warningInterval);
 
-            configuration = new UserConfiguration(Guid.NewGuid(), Environment.UserName, dailyLimit, warningTime, warningInterval);
+        }
+
+        private int GetRegistryIntValue(string key, string valueName, int defaultValue)
+        {
+            var objectValue = Registry.GetValue(key, valueName, defaultValue);
+            if (objectValue == null)
+            {
+                return defaultValue;
+            }
+            else if (objectValue is int intValue)
+            {
+                return intValue;
+            }
+            else if (objectValue is string stringValue)
+            {
+                if (int.TryParse(stringValue, out int result))
+                {
+                    return result;
+                }
+            }
+            return defaultValue;
+        }
+    }
+
+    public class UserStateProvider
+    {
+        const string _baseKey = @"HKEY_CURRENT_USER\Software\ScreenTime";
 
 
+        public void SaveState(DateTimeOffset lastKnownTime, TimeSpan duration)
+        {
+            // write the time to the registry
+            Registry.SetValue(_baseKey, "Last", lastKnownTime.ToString("o"));
+            Registry.SetValue(_baseKey, "Cumulative", duration.ToString("G"));
+        }
+
+        public void LoadState(out DateTimeOffset lastKnownTime, out TimeSpan duration)
+        {
             // load the last known time and duration from the registry
-
             var lastKnownTimeObject = Registry.GetValue(_baseKey, "Last", null);
             var durationObject = Registry.GetValue(_baseKey, "Cumulative", null);
-
             // if the last known time minus the duration adds up to a time that would be yesterday or earlier (local time), reset the duration
             if (lastKnownTimeObject != null && durationObject != null)
             {
@@ -63,24 +82,44 @@ namespace ScreenTime
                 lastKnownTime = DateTimeOffset.Now;
                 duration = TimeSpan.Zero;
             }
+        }
+    }
 
-            // start a task every two seconds to update th registry
-            timerTask = Task.Run(async () =>
-            {
-                while (true)
-                {
-                    await Task.Delay(1000);
-                    UpdateInteractiveTime();
-                    SaveState(lastKnownTime, duration);
-                }
-            });
+    public class ScreenTimeLocalService : IScreenTimeStateClient
+    {
+        DateTimeOffset lastKnownTime;
+        TimeSpan duration;
+        private TimeProvider _timeProvider;
+        public UserConfiguration configuration;
+        private UserStateProvider _stateProvider;
 
+        private bool disposedValue = false;
+
+        enum State
+        {
+            active,
+            inactive
         }
 
-        private void UpdateInteractiveTime()
+        State currentState = State.inactive;
+
+
+        public ScreenTimeLocalService(TimeProvider timeProvider, UserConfiguration userConfiguration, UserStateProvider stateProvider)
         {
+            _timeProvider = timeProvider;
+            configuration = userConfiguration;
+            _stateProvider = stateProvider;
+
+            _timeProvider.CreateTimer(UpdateInteractiveTime, this, TimeSpan.Zero, TimeSpan.FromSeconds(1));
+        }
+
+        private void UpdateInteractiveTime(object? state)
+        {
+            if (disposedValue) {
+                return;
+            }
             // get the current time
-            var currentTime = DateTimeOffset.Now;
+            var currentTime = _timeProvider.GetUtcNow();
             // calculate the time since the last known time
             var timeSinceLast = currentTime - lastKnownTime;
             // add the time since the last known time to the duration if the user is active
@@ -91,6 +130,7 @@ namespace ScreenTime
             // set the last known time to the current time
             lastKnownTime = currentTime;
         }
+
 
         public void EndSessionAsync()
         {
@@ -184,68 +224,6 @@ namespace ScreenTime
         public Task<UserConfiguration?> GetUserConfigurationAsync()
         {
             return Task.FromResult<UserConfiguration?>(configuration);
-        }
-
-        public void SaveState(DateTimeOffset lastKnownTime, TimeSpan duration)
-        {
-            // write the time to the registry
-            Registry.SetValue(@"HKEY_CURRENT_USER\Software\ScreenTime", "Last", DateTime.Now.ToString("o"));
-            Registry.SetValue(@"HKEY_CURRENT_USER\Software\ScreenTime", "Cumulative", duration.ToString("G"));
-        }
-
-        protected virtual void Dispose(bool disposing)
-        {
-            if (!disposedValue)
-            {
-                if (disposing)
-                {
-                    // Dispose managed state (managed objects)
-                    if (timerTask != null)
-                    {
-                        timerTask.Dispose();
-                    }
-                }
-
-                // TODO: free unmanaged resources (unmanaged objects) and override finalizer
-                // TODO: set large fields to null
-                disposedValue = true;
-            }
-        }
-
-        // // TODO: override finalizer only if 'Dispose(bool disposing)' has code to free unmanaged resources
-        // ~ScreenTimeLocalStateClient()
-        // {
-        //     // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
-        //     Dispose(disposing: false);
-        // }
-
-        public void Dispose()
-        {
-            // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
-            Dispose(disposing: true);
-            GC.SuppressFinalize(this);
-        }
-
-        private int GetRegistryIntValue(string key, string valueName, int defaultValue)
-        {
-
-            var objectValue = Registry.GetValue(key, valueName, defaultValue);
-            if (objectValue == null)
-            {
-                return defaultValue;
-            }
-            else if (objectValue is int intValue)
-            {
-                return intValue;
-            }
-            else if (objectValue is string stringValue)
-            {
-                if (int.TryParse(stringValue, out int result))
-                {
-                    return result;
-                }
-            }
-            return defaultValue;
         }
     }
 }
