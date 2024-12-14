@@ -36,7 +36,7 @@ namespace screentime
             // TODO: Load Configuration
             // load the configuration from the registry
 
-            var dailyLimit = GetRegistryIntValue(_baseKey, "DailyLimit", 60);
+            var dailyLimit = GetRegistryIntValue(_baseKey, "DailyLimit", 120);
             var warningTime = GetRegistryIntValue(_baseKey, "WarningTime", 10);
             var warningInterval = GetRegistryIntValue(_baseKey, "WarningInterval", 60);
 
@@ -189,7 +189,7 @@ namespace screentime
         public void SaveState(DateTimeOffset lastKnownTime, TimeSpan duration)
         {
             // write the time to the registry
-            Registry.SetValue(@"HKEY_CURRENT_USER\Software\ScreenTime", "Last", DateTime.UtcNow.ToString("o"));
+            Registry.SetValue(@"HKEY_CURRENT_USER\Software\ScreenTime", "Last", DateTime.Now.ToString("o"));
             Registry.SetValue(@"HKEY_CURRENT_USER\Software\ScreenTime", "Cumulative", duration.ToString("G"));
         }
 

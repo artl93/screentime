@@ -1,5 +1,5 @@
 ﻿
-internal class HiddenForm : Form
+internal class HiddenForm : Form, IDisposable
 {
     public HiddenForm(Task thingToRun)
     {
@@ -12,5 +12,12 @@ internal class HiddenForm : Form
 
     public Task Task { get; }
 
-
+    protected override void Dispose(bool disposing)
+    {
+        if (disposing)
+        {
+            Task?.Dispose();
+        }
+        base.Dispose(disposing);
+    }
 }

@@ -20,11 +20,6 @@
     <PackageReference Include="System.Management" Version="9.0.0" />
     <!-- PackageReference Include="Microsoft.WindowsAppSDK" Version="1.6.241114003" / -->
   </ItemGroup>
-  <ItemGroup>
-    <None Update="install.cmd">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-  </ItemGroup>
   <Target Name="ZipOutput" AfterTargets="Build">
     <ItemGroup>
       <FilesToZip Include="$(OutputPath)**\*.*" />
