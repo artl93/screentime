@@ -20,8 +20,7 @@ services.AddHttpClient("screentimeClient", client =>
 services.AddSingleton(TimeProvider.System);
 
 var serviceProvider = services.BuildServiceProvider();
-var client = serviceProvider.GetRequiredService<IHttpClientFactory>().CreateClient("screentimeClient");
-
+var httpClient = serviceProvider.GetRequiredService<IHttpClientFactory>().CreateClient("screentimeClient");
 
 
 DateTime startTime = DateTime.Now;
@@ -45,9 +44,9 @@ var lastMessageShown = DateTimeOffset.MinValue;
 var firstArg = args.Length > 0 ? args[0] : string.Empty;
 IScreenTimeStateClient client = firstArg switch
 {
-    "develop" => new ScreenTime.ScreenTimeServiceClient(client).SetBaseAddress("https://localhost:7186"),
-    "live" => new ScreenTime.ScreenTimeServiceClient(client).SetBaseAddress("https://screentime.azurewebsites.net"),
-    _ => new ScreenTime.ScreenTimeLocalService()
+    "develop" => new ScreenTime.ScreenTimeServiceClient(httpClient).SetBaseAddress("https://localhost:7186"),
+    "live" => new ScreenTime.ScreenTimeServiceClient(httpClient).SetBaseAddress("https://screentime.azurewebsites.net"),
+    _ => new ScreenTime.ScreenTimeLocalService(serviceProvider.GetRequiredService<TimeProvider>(), UserConfigurationReader.GetConfiguration(), new UserStateProvider())
 };
     
 
@@ -177,6 +176,7 @@ async void ShowMessageAsync(NotifyIcon icon, IScreenTimeStateClient server, User
     icon.ShowBalloonTip(1000);
 }
 
+/*
 static void LogUserOut()
 {
     ManagementBaseObject mboShutdown = null;
@@ -190,4 +190,4 @@ static void LogUserOut()
     {
         mboShutdown = manObj.InvokeMethod("Win32Shutdown", mboShutdownParams, null);
     }
-}
+}*/

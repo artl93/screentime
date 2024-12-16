@@ -1,6 +1,5 @@
 ﻿using Humanizer;
 using Microsoft.Extensions.Logging;
-using Microsoft.Win32;
 using System;
 using System.Collections.Generic;
 using System.Dynamic;
@@ -15,84 +14,17 @@ using static System.Windows.Forms.VisualStyles.VisualStyleElement.TaskbarClock;
 namespace ScreenTime
 {
 
-    public class UserConfigurationReader
-    {
-        const string _baseKey = @"HKEY_CURRENT_USER\Software\ScreenTime";
-
-        public UserConfiguration GetConfigurationFromRegistry()
-        {
-            var dailyLimit = GetRegistryIntValue(_baseKey, "DailyLimit", 120);
-            var warningTime = GetRegistryIntValue(_baseKey, "WarningTime", 10);
-            var warningInterval = GetRegistryIntValue(_baseKey, "WarningInterval", 60);
-            return new UserConfiguration(Guid.NewGuid(), Environment.UserName, dailyLimit, warningTime, warningInterval);
-
-        }
-
-        private int GetRegistryIntValue(string key, string valueName, int defaultValue)
-        {
-            var objectValue = Registry.GetValue(key, valueName, defaultValue);
-            if (objectValue == null)
-            {
-                return defaultValue;
-            }
-            else if (objectValue is int intValue)
-            {
-                return intValue;
-            }
-            else if (objectValue is string stringValue)
-            {
-                if (int.TryParse(stringValue, out int result))
-                {
-                    return result;
-                }
-            }
-            return defaultValue;
-        }
-    }
-
-    public class UserStateProvider
-    {
-        const string _baseKey = @"HKEY_CURRENT_USER\Software\ScreenTime";
-
-
-        public void SaveState(DateTimeOffset lastKnownTime, TimeSpan duration)
-        {
-            // write the time to the registry
-            Registry.SetValue(_baseKey, "Last", lastKnownTime.ToString("o"));
-            Registry.SetValue(_baseKey, "Cumulative", duration.ToString("G"));
-        }
-
-        public void LoadState(out DateTimeOffset lastKnownTime, out TimeSpan duration)
-        {
-            // load the last known time and duration from the registry
-            var lastKnownTimeObject = Registry.GetValue(_baseKey, "Last", null);
-            var durationObject = Registry.GetValue(_baseKey, "Cumulative", null);
-            // if the last known time minus the duration adds up to a time that would be yesterday or earlier (local time), reset the duration
-            if (lastKnownTimeObject != null && durationObject != null)
-            {
-                _ = DateTimeOffset.TryParse(lastKnownTimeObject.ToString(), out lastKnownTime);
-                _ = TimeSpan.TryParse(durationObject.ToString(), out duration);
-                if (lastKnownTime.ToLocalTime() < DateTime.Today)
-                {
-                    duration = TimeSpan.Zero;
-                }
-            }
-            else
-            {
-                lastKnownTime = DateTimeOffset.Now;
-                duration = TimeSpan.Zero;
-            }
-        }
-    }
-
-    public class ScreenTimeLocalService : IScreenTimeStateClient
+    public class ScreenTimeLocalService : IScreenTimeStateClient, IDisposable
     {
         DateTimeOffset lastKnownTime;
+        private DateTimeOffset nextResetDate;
         TimeSpan duration;
+
         private TimeProvider _timeProvider;
         public UserConfiguration configuration;
         private UserStateProvider _stateProvider;
-
+        private TimeSpan _resetTime;
+        private ITimer callbackTimer;
         private bool disposedValue = false;
 
         enum State
@@ -102,15 +34,41 @@ namespace ScreenTime
         }
 
         State currentState = State.inactive;
-
+        private bool disposedValue1;
 
         public ScreenTimeLocalService(TimeProvider timeProvider, UserConfiguration userConfiguration, UserStateProvider stateProvider)
         {
             _timeProvider = timeProvider;
             configuration = userConfiguration;
             _stateProvider = stateProvider;
+            _resetTime = TimeSpan.Parse($"{userConfiguration.ResetTime}");
+            nextResetDate = GetNextResetTime(_resetTime);
 
-            _timeProvider.CreateTimer(UpdateInteractiveTime, this, TimeSpan.Zero, TimeSpan.FromSeconds(1));
+            stateProvider.LoadState(out lastKnownTime, out duration);
+            // data corruption issue
+            if (lastKnownTime.UtcDateTime - duration >= _timeProvider.GetUtcNow())
+            {
+                lastKnownTime = _timeProvider.GetUtcNow();
+                duration = TimeSpan.Zero;
+            }
+
+            callbackTimer = _timeProvider.CreateTimer(UpdateInteractiveTime, this, TimeSpan.Zero, TimeSpan.FromSeconds(1));
+        }
+
+        private DateTimeOffset GetNextResetTime(TimeSpan resetTime)
+        {
+            var resetOffset = -(_timeProvider.LocalTimeZone.BaseUtcOffset) + resetTime;
+            var newResetTime = _timeProvider.GetUtcNow().Date + resetOffset;
+            var utcResetTime = new DateTimeOffset(newResetTime, TimeSpan.FromHours(0));
+
+            if (utcResetTime < _timeProvider.GetUtcNow())
+            {
+                return utcResetTime.AddDays(1);
+            }
+            else
+            {
+                return utcResetTime;
+            }
         }
 
         private void UpdateInteractiveTime(object? state)
@@ -119,16 +77,27 @@ namespace ScreenTime
                 return;
             }
             // get the current time
+
             var currentTime = _timeProvider.GetUtcNow();
-            // calculate the time since the last known time
             var timeSinceLast = currentTime - lastKnownTime;
-            // add the time since the last known time to the duration if the user is active
-            if (currentState == State.active)
+
+            if ((currentTime >= nextResetDate))
+            {
+                // reset the duration once per day
+                var delta = currentTime - nextResetDate;
+                nextResetDate = GetNextResetTime(_resetTime);
+                duration = delta;
+            }
+            else if (currentState == State.active)
             {
                 duration += timeSinceLast;
             }
+
+
             // set the last known time to the current time
             lastKnownTime = currentTime;
+            // save the state
+            _stateProvider.SaveState(lastKnownTime, duration);
         }
 
 
@@ -224,6 +193,36 @@ namespace ScreenTime
         public Task<UserConfiguration?> GetUserConfigurationAsync()
         {
             return Task.FromResult<UserConfiguration?>(configuration);
+        }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!disposedValue1)
+            {
+                if (disposing)
+                {
+                    callbackTimer.Dispose();
+                    // TODO: dispose managed state (managed objects)
+                }
+
+                // TODO: free unmanaged resources (unmanaged objects) and override finalizer
+                // TODO: set large fields to null
+                disposedValue1 = true;
+            }
+        }
+
+        // // TODO: override finalizer only if 'Dispose(bool disposing)' has code to free unmanaged resources
+        // ~ScreenTimeLocalService()
+        // {
+        //     // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
+        //     Dispose(disposing: false);
+        // }
+
+        public void Dispose()
+        {
+            // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
+            Dispose(disposing: true);
+            GC.SuppressFinalize(this);
         }
     }
 }
