@@ -46,12 +46,20 @@ namespace ScreenTime
 
             stateProvider.LoadState(out lastKnownTime, out duration);
             // data corruption issue
-            if (lastKnownTime.UtcDateTime - duration >= _timeProvider.GetUtcNow())
+            if (lastKnownTime == DateTimeOffset.MinValue || lastKnownTime.UtcDateTime - duration >= _timeProvider.GetUtcNow())
             {
                 lastKnownTime = _timeProvider.GetUtcNow();
                 duration = TimeSpan.Zero;
             }
+            // if it has been more than 24 hours since the last reset, reset the duration
+            else if (lastKnownTime.UtcDateTime <= nextResetDate.AddDays(-1) || duration >= TimeSpan.FromDays(1))
+            {
+                duration = TimeSpan.Zero;
+                lastKnownTime = _timeProvider.GetUtcNow();
+            }
 
+            // this should have been called in CreateTimer
+            DoUpdateTime();
             callbackTimer = _timeProvider.CreateTimer(UpdateInteractiveTime, this, TimeSpan.Zero, TimeSpan.FromSeconds(1));
         }
 
@@ -61,7 +69,7 @@ namespace ScreenTime
             var newResetTime = _timeProvider.GetUtcNow().Date + resetOffset;
             var utcResetTime = new DateTimeOffset(newResetTime, TimeSpan.FromHours(0));
 
-            if (utcResetTime < _timeProvider.GetUtcNow())
+            if (utcResetTime <= _timeProvider.GetUtcNow())
             {
                 return utcResetTime.AddDays(1);
             }
@@ -73,9 +81,17 @@ namespace ScreenTime
 
         private void UpdateInteractiveTime(object? state)
         {
-            if (disposedValue) {
+            if (disposedValue)
+            {
                 return;
             }
+            DoUpdateTime();
+            // save the state
+            _stateProvider.SaveState(lastKnownTime, duration);
+        }
+
+        private void DoUpdateTime()
+        {
             // get the current time
 
             var currentTime = _timeProvider.GetUtcNow();
@@ -96,10 +112,7 @@ namespace ScreenTime
 
             // set the last known time to the current time
             lastKnownTime = currentTime;
-            // save the state
-            _stateProvider.SaveState(lastKnownTime, duration);
         }
-
 
         public void EndSessionAsync()
         {
@@ -193,6 +206,13 @@ namespace ScreenTime
         public Task<UserConfiguration?> GetUserConfigurationAsync()
         {
             return Task.FromResult<UserConfiguration?>(configuration);
+        }
+
+        public void Reset()
+        {
+            lastKnownTime = _timeProvider.GetUtcNow();
+            duration = TimeSpan.Zero;
+            nextResetDate = GetNextResetTime(_resetTime);
         }
 
         protected virtual void Dispose(bool disposing)
