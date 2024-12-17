@@ -31,13 +31,6 @@ DateTime now = DateTime.Now;
 
 
 
-var icon = new NotifyIcon();
-icon.Icon = SystemIcons.Application;
-icon.ContextMenuStrip = new ContextMenuStrip();
-icon.ContextMenuStrip.Items.Add("Exit", null, (s, e) => { icon.Visible = false; Environment.Exit(0); });
-icon.Visible = true;
-icon.Text = "Connecting...";
-
 var lastMessageShown = DateTimeOffset.MinValue;
 
 // create the server
@@ -48,7 +41,16 @@ IScreenTimeStateClient client = firstArg switch
     "live" => new ScreenTime.ScreenTimeServiceClient(httpClient).SetBaseAddress("https://screentime.azurewebsites.net"),
     _ => new ScreenTime.ScreenTimeLocalService(serviceProvider.GetRequiredService<TimeProvider>(), UserConfigurationReader.GetConfiguration(), new UserStateProvider())
 };
-    
+
+
+var icon = new NotifyIcon();
+icon.Icon = SystemIcons.Application;
+icon.ContextMenuStrip = new ContextMenuStrip();
+icon.ContextMenuStrip.Items.Add("Reset", null, (s, e) => { client.Reset(); });
+icon.ContextMenuStrip.Items.Add("Exit", null, (s, e) => { icon.Visible = false; Environment.Exit(0); });
+icon.Visible = true;
+icon.Text = "Connecting...";
+
 
 // start the session when the app starts
 client.StartSessionAsync();

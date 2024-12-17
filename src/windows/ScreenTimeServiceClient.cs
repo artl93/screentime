@@ -120,5 +120,10 @@ namespace ScreenTime
             _client.BaseAddress = new Uri(v);
             return this;
         }
+
+        public void Reset()
+        {
+            throw new NotImplementedException();
+        }
     }
 }
