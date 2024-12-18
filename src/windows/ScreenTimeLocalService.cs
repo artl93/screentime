@@ -14,27 +14,26 @@ using static System.Windows.Forms.VisualStyles.VisualStyleElement.TaskbarClock;
 namespace ScreenTime
 {
 
-    public class ScreenTimeLocalService : IScreenTimeStateClient, IDisposable
+    public partial class ScreenTimeLocalService : IScreenTimeStateClient, IDisposable
     {
-        DateTimeOffset lastKnownTime;
+        private DateTimeOffset lastKnownTime;
         private DateTimeOffset nextResetDate;
-        TimeSpan duration;
-
+        private TimeSpan duration;
         private TimeProvider _timeProvider;
         public UserConfiguration configuration;
         private UserStateProvider _stateProvider;
         private TimeSpan _resetTime;
         private ITimer callbackTimer;
         private bool disposedValue = false;
-
-        enum State
-        {
-            active,
-            inactive
-        }
-
-        State currentState = State.inactive;
+        private ActivityState currentState = ActivityState.inactive;
         private bool disposedValue1;
+        private UserState lastUserState;
+
+        public event EventHandler? OnDayRollover;
+        public event EventHandler? OnTimeUpdate;
+        public event EventHandler<UserStatusEventArgs>? OnUserStatusChanged;
+
+
 
         public ScreenTimeLocalService(TimeProvider timeProvider, UserConfiguration userConfiguration, UserStateProvider stateProvider)
         {
@@ -90,10 +89,6 @@ namespace ScreenTime
             _stateProvider.SaveState(lastKnownTime, duration);
         }
 
-        public event EventHandler? OnDayRollover;
-
-        public event EventHandler? OnTimeUpdate;
-
 
         private void DoUpdateTime()
         {
@@ -103,12 +98,12 @@ namespace ScreenTime
             if (currentTime >= nextResetDate)
             {
                 var delta = currentTime - nextResetDate;
-                delta = currentState == State.active ? delta.Add(TimeSpan.FromDays(delta.Days * -1)) : TimeSpan.FromMinutes(0);
+                delta = currentState == ActivityState.Active ? delta.Add(TimeSpan.FromDays(delta.Days * -1)) : TimeSpan.FromMinutes(0);
                 nextResetDate = GetNextResetTime(_resetTime);
                 duration = delta;
                 OnDayRollover?.Invoke(this, EventArgs.Empty);
             }
-            else if (currentState == State.active)
+            else if (currentState == ActivityState.Active)
             {
                 duration += timeSinceLast;
             }
@@ -119,20 +114,16 @@ namespace ScreenTime
             PostMessage();
         }
 
-        public event EventHandler<UserStatusEventArgs>? OnUserStatusChanged;
-        public UserStatus UserStatus { get; private set; }
-
         private void PostStatusChanges()
         {
-
             var interactiveTime = duration;
             var dailyTimeLimit = TimeSpan.FromMinutes(configuration.DailyLimitMinutes);
             var warningTime = TimeSpan.FromMinutes(configuration.WarningTimeMinutes);
             var graceTime = TimeSpan.FromMinutes(configuration.GraceMinutes);
             var status = GetUserStatus(interactiveTime, dailyTimeLimit, warningTime, graceTime);
-            if (status != UserStatus)
+            if (status.State != lastUserState)
             {
-                UserStatus = status;
+                lastUserState = status.State;
                 OnUserStatusChanged?.Invoke(this, new UserStatusEventArgs(status, _timeProvider.GetUtcNow(), interactiveTime));
             }
         }
@@ -152,12 +143,13 @@ namespace ScreenTime
         public void EndSessionAsync()
         {
             DoUpdateTime();
-            currentState = State.inactive;
+            currentState = ActivityState.inactive;
         }
+
         public void StartSessionAsync()
         {
             DoUpdateTime();
-            currentState = State.active;
+            currentState = ActivityState.Active;
         }
 
         public Task<UserStatus?> GetInteractiveTimeAsync()
@@ -170,29 +162,25 @@ namespace ScreenTime
             return Task.FromResult<UserStatus?>(GetUserStatus(interactiveTime, dailyTimeLimit, warningTime, graceTime));
         }
 
-
-        // get the user status based on the time logged in
-        // keey this in sync with the server version of this method
         private UserStatus GetUserStatus(TimeSpan interactiveTime, TimeSpan dailyTimeLimit, TimeSpan warningTime, TimeSpan gracePeriod)
         {
-
             // get user status based on time logged in
             // if the user has gone over the limit + the grade period, log them off
             if (interactiveTime >= dailyTimeLimit + gracePeriod)
             {
-                return new UserStatus(interactiveTime, "🛡️", "logout", Status.Lock, dailyTimeLimit);
+                return new UserStatus(interactiveTime, "🛡️", "logout", UserState.Lock, dailyTimeLimit);
             }
             else if (interactiveTime >= dailyTimeLimit)
             {
-                return new UserStatus(interactiveTime, "🛑", "logout", Status.Error, dailyTimeLimit);
+                return new UserStatus(interactiveTime, "🛑", "logout", UserState.Error, dailyTimeLimit);
             }
             else if (dailyTimeLimit - interactiveTime <= warningTime && dailyTimeLimit - interactiveTime > TimeSpan.Zero)
             {
-                return new UserStatus(interactiveTime, "⚠️", "none", Status.Warn, dailyTimeLimit);
+                return new UserStatus(interactiveTime, "⚠️", "none", UserState.Warn, dailyTimeLimit);
             }
             else
             {
-                return new UserStatus(interactiveTime, "⏳", "none", Status.Okay, dailyTimeLimit);
+                return new UserStatus(interactiveTime, "⏳", "none", UserState.Okay, dailyTimeLimit);
             }
         }
 
@@ -203,41 +191,36 @@ namespace ScreenTime
 
         private UserMessage GetUserMessage()
         {
+            var interactiveTime = duration;
+            var dailyTimeLimit = TimeSpan.FromMinutes(configuration.DailyLimitMinutes);
+            var warningTime = TimeSpan.FromMinutes(configuration.WarningTimeMinutes);
+            var graceTime = TimeSpan.FromMinutes(configuration.GraceMinutes);
+
+            var interactiveTimeString = TimeSpanHumanizeExtensions.Humanize(interactiveTime);
+            var allowedTimeString = TimeSpanHumanizeExtensions.Humanize(dailyTimeLimit);
+
+            // when time is up, log them off
+            if (interactiveTime >= dailyTimeLimit)
             {
-
-                var interactiveTime = duration;
-
-                var dailyTimeLimit = TimeSpan.FromMinutes(configuration.DailyLimitMinutes);
-                var warningTime = TimeSpan.FromMinutes(configuration.WarningTimeMinutes);
-                var graceTime = TimeSpan.FromMinutes(configuration.GraceMinutes);
-
-                var interactiveTimeString = TimeSpanHumanizeExtensions.Humanize(interactiveTime);
-                var allowedTimeString = TimeSpanHumanizeExtensions.Humanize(dailyTimeLimit);
-
-                // when time is up, log them off
-                if (interactiveTime >= dailyTimeLimit)
+                if (interactiveTime > dailyTimeLimit + graceTime)
                 {
-                    if (interactiveTime > dailyTimeLimit + graceTime)
-                    {
-                        // if they have gone over the limit, log them off
-                        return new UserMessage("Hey, you're done.", $"You have been logged for {interactiveTimeString} today. You're allowed {allowedTimeString} today. You have gone over by {TimeSpanHumanizeExtensions.Humanize(interactiveTime - dailyTimeLimit)}", "🛡️", "lock");
-                    }
-                    return new UserMessage("Time to log out.", $"You have been logged for {interactiveTimeString} today. You're allowed {allowedTimeString} today.", "🛑", "logout");
+                    // if they have gone over the limit, log them off
+                    return new UserMessage("Hey, you're done.", $"You have been logged for {interactiveTimeString} today. You're allowed {allowedTimeString} today. You have gone over by {TimeSpanHumanizeExtensions.Humanize(interactiveTime - dailyTimeLimit)}", "🛡️", "lock");
                 }
-
-                // when they have 10 minutes left, warn them every one minute
-                if (dailyTimeLimit - interactiveTime <= warningTime && dailyTimeLimit - interactiveTime > TimeSpan.Zero)
-                {
-                    if ((dailyTimeLimit - interactiveTime).Minutes % 1 == 0)
-                    {
-                        var remainingTimeString = TimeSpanHumanizeExtensions.Humanize(dailyTimeLimit - interactiveTime);
-                        return new UserMessage("Time Warning", $"You have {remainingTimeString} left out of {allowedTimeString}", "⏳", "warn");
-                    }
-                }
-
-                return new UserMessage("Time Logged", $"You have been logged for {interactiveTimeString} today out of {allowedTimeString}", "🕒", "none");
-
+                return new UserMessage("Time to log out.", $"You have been logged for {interactiveTimeString} today. You're allowed {allowedTimeString} today.", "🛑", "logout");
             }
+
+            // when they have 10 minutes left, warn them every one minute
+            if (dailyTimeLimit - interactiveTime <= warningTime && dailyTimeLimit - interactiveTime > TimeSpan.Zero)
+            {
+                if ((dailyTimeLimit - interactiveTime).Minutes % 1 == 0)
+                {
+                    var remainingTimeString = TimeSpanHumanizeExtensions.Humanize(dailyTimeLimit - interactiveTime);
+                    return new UserMessage("Time Warning", $"You have {remainingTimeString} left out of {allowedTimeString}", "⏳", "warn");
+                }
+            }
+
+            return new UserMessage("Time Logged", $"You have been logged for {interactiveTimeString} today out of {allowedTimeString}", "🕒", "none");
         }
 
         public Task<UserConfiguration?> GetUserConfigurationAsync()

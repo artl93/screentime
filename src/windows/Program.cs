@@ -96,23 +96,23 @@ var task = Task.Run(async () =>
                 client.StartSessionAsync();
             }
 
-            icon.Icon = status.Status switch
+            icon.Icon = status.State switch
             {
-                Status.Okay => SystemIcons.Information,
-                Status.Warn => SystemIcons.Warning,
-                Status.Error => SystemIcons.Error,
-                Status.Lock => SystemIcons.Shield,
+                UserState.Okay => SystemIcons.Information,
+                UserState.Warn => SystemIcons.Warning,
+                UserState.Error => SystemIcons.Error,
+                UserState.Lock => SystemIcons.Shield,
                 _ => SystemIcons.Application
             };
 
-            if (status.Status != Status.Okay)
+            if (status.State != UserState.Okay)
             {
                 ShowMessageAsync(icon, client, configuration);
                 // pick the right icon for the notification icon based on the status
 
             }
 
-            if (status.Status == Status.Lock)
+            if (status.State == UserState.Lock)
             {
                 await Task.Delay(10000);
                 client.EndSessionAsync();
