@@ -90,29 +90,63 @@ namespace ScreenTime
             _stateProvider.SaveState(lastKnownTime, duration);
         }
 
+        public event EventHandler? OnDayRollover;
+
+        public event EventHandler? OnTimeUpdate;
+
+
         private void DoUpdateTime()
         {
-            // get the current time
-
             var currentTime = _timeProvider.GetUtcNow();
             var timeSinceLast = currentTime - lastKnownTime;
 
-            if ((currentTime >= nextResetDate))
+            if (currentTime >= nextResetDate)
             {
-                // reset the duration once per day
                 var delta = currentTime - nextResetDate;
                 delta = currentState == State.active ? delta.Add(TimeSpan.FromDays(delta.Days * -1)) : TimeSpan.FromMinutes(0);
                 nextResetDate = GetNextResetTime(_resetTime);
                 duration = delta;
+                OnDayRollover?.Invoke(this, EventArgs.Empty);
             }
             else if (currentState == State.active)
             {
                 duration += timeSinceLast;
             }
 
-
-            // set the last known time to the current time
             lastKnownTime = currentTime;
+            OnTimeUpdate?.Invoke(this, EventArgs.Empty);
+            PostStatusChanges();
+            PostMessage();
+        }
+
+        public event EventHandler<UserStatusEventArgs>? OnUserStatusChanged;
+        public UserStatus UserStatus { get; private set; }
+
+        private void PostStatusChanges()
+        {
+
+            var interactiveTime = duration;
+            var dailyTimeLimit = TimeSpan.FromMinutes(configuration.DailyLimitMinutes);
+            var warningTime = TimeSpan.FromMinutes(configuration.WarningTimeMinutes);
+            var graceTime = TimeSpan.FromMinutes(configuration.GraceMinutes);
+            var status = GetUserStatus(interactiveTime, dailyTimeLimit, warningTime, graceTime);
+            if (status != UserStatus)
+            {
+                UserStatus = status;
+                OnUserStatusChanged?.Invoke(this, new UserStatusEventArgs(status, _timeProvider.GetUtcNow(), interactiveTime));
+            }
+        }
+
+        public event EventHandler<MessageEventArgs>? OnMessageUpdate;
+
+        private void PostMessage()
+        {
+            var message = GetUserMessage();
+            if (message != null)
+            {
+                System.Diagnostics.Debug.WriteLine(message.Message);
+            }
+            OnMessageUpdate?.Invoke(this, new MessageEventArgs(message));
         }
 
         public void EndSessionAsync()

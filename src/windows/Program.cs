@@ -86,7 +86,7 @@ var task = Task.Run(async () =>
             // humanize the uptime and show it in the icon text
 
             var humanizedUptime = Humanizer.TimeSpanHumanizeExtensions.Humanize(status.LoggedInTime, 2);
-            var humanizedDailyLimit = Humanizer.TimeSpanHumanizeExtensions.Humanize(status.dailyTimeLimit,2);
+            var humanizedDailyLimit = Humanizer.TimeSpanHumanizeExtensions.Humanize(status.DailyTimeLimit,2);
 
             icon.Text = $"{status.Icon} Interactive time: {humanizedUptime} out of {humanizedDailyLimit}.";
 
