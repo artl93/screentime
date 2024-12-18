@@ -5,6 +5,7 @@ using System.Management;
 using System.Runtime.InteropServices;
 using ScreenTime;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Win32;
 
 
 
@@ -29,7 +30,9 @@ DateTime downTimeStart = DateTime.Now;
 DateTime downTimeEnd = DateTime.Now;
 DateTime now = DateTime.Now;
 
-
+// if not set, write to the registry to run this application on on startup
+if (Registry.GetValue(@"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Run", "ScreenTime", null) == null)
+    Registry.SetValue(@"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Run", "ScreenTime", Application.ExecutablePath);
 
 var lastMessageShown = DateTimeOffset.MinValue;
 
