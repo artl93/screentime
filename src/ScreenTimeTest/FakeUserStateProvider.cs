@@ -6,6 +6,12 @@ namespace ScreenTimeTest
     {
         class FakeUserStateProvider : UserStateProvider
         {
+            public FakeUserStateProvider(TimeProvider timeProvider)
+            {
+                LastKnownDate = timeProvider.GetUtcNow();
+                Duration = TimeSpan.Zero;
+            }
+
             public FakeUserStateProvider(string lastKnownDate, string duration)
             {
                 LastKnownDate = DateTimeOffset.Parse(lastKnownDate);

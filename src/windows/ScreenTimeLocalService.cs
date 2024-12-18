@@ -101,6 +101,7 @@ namespace ScreenTime
             {
                 // reset the duration once per day
                 var delta = currentTime - nextResetDate;
+                delta = currentState == State.active ? delta.Add(TimeSpan.FromDays(delta.Days * -1)) : TimeSpan.FromMinutes(0);
                 nextResetDate = GetNextResetTime(_resetTime);
                 duration = delta;
             }
@@ -116,10 +117,12 @@ namespace ScreenTime
 
         public void EndSessionAsync()
         {
+            DoUpdateTime();
             currentState = State.inactive;
         }
         public void StartSessionAsync()
         {
+            DoUpdateTime();
             currentState = State.active;
         }
 

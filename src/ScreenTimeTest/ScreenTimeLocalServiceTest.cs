@@ -8,9 +8,10 @@ using Microsoft.Extensions.Time.Testing;
 using Microsoft.VisualStudio.TestPlatform.CommunicationUtilities;
 
 namespace ScreenTimeTest
-{
+{ 
     public partial class ScreenTimeLocalServiceTest
     {
+
         [Theory]
         [InlineData("2024/12/14 00:00 -8:00", "2024/12/14 00:49 -8:00", "2024/12/14 00:00 -8:00", "00:00:00", "00:00", Status.Okay, "00:49:00")]
         [InlineData("2024/12/14 00:00 -8:00", "2024/12/14 00:50 -8:00", "2024/12/14 00:00 -8:00", "00:00:00", "00:00", Status.Warn, "00:50:00")]
@@ -65,7 +66,6 @@ namespace ScreenTimeTest
         async Task TestGetInteractiveTime(
             string startString, string nowString, string lastKnownDate, string lastDuration, string resetTime,
             ScreenTime.Status expectedStatus, string expectedDuration)
-//            int dailyLimitMinutes, int warningTimeMinutes, int warningIntervalSeconds, int graceMinutes)
         {
             var start = DateTimeOffset.Parse(startString);
             var now = DateTimeOffset.Parse(nowString);
@@ -85,6 +85,92 @@ namespace ScreenTimeTest
 
             var result = await service.GetInteractiveTimeAsync();
             service.EndSessionAsync();
+
+            Assert.NotNull(result);
+            Assert.Equal(TimeSpan.Parse(expectedDuration), result.LoggedInTime);
+            Assert.Equal(expectedStatus, result.Status);
+        }
+
+        [Theory]
+        [InlineData(
+            new string[] 
+            { 
+                "2027/01/01 06:00 -8:00,2027/01/01 06:30 -8:00, Okay",
+                "2027/01/01 08:00 -8:00,2027/01/01 08:30 -8:00, Error",
+            },
+            Status.Error, "01:00:00")]
+        [InlineData(
+            new string[]
+            {
+                "2027/01/02 06:00 -8:00,2027/01/02 06:30 -8:00, Okay",
+                "2027/01/02 08:00 -8:00,2027/01/02 08:30 -8:00, Error",
+                "2027/01/02 09:30 -8:00,2027/01/02 09:35 -8:00, Lock",
+            },
+            Status.Lock, "01:05:00")]
+        [InlineData(
+            new string[]
+            {
+                "2027/01/03 06:00 -8:00,2027/01/03 06:30 -8:00, Okay",
+                "2027/01/03 08:00 -8:00,2027/01/03 08:30 -8:00, Error",
+                "2027/01/03 09:30 -8:00,2027/01/03 09:35 -8:00, Lock",
+                "2027/01/04 09:30 -8:00,2027/01/04 09:35 -8:00, Okay",
+            },
+            Status.Okay, "00:05:00")]
+        [InlineData(
+            new string[]
+            {
+                "2027/01/03 06:00 -8:00,2027/01/03 06:30 -8:00, Okay",
+                "2027/01/03 08:00 -8:00,2027/01/03 08:30 -8:00, Error",
+                "2027/01/03 09:30 -8:00,2027/01/03 09:35 -8:00, Lock",
+                "2027/01/04 09:30 -8:00,2027/01/04 09:35 -8:00, Okay",
+                "2027/01/04 10:30 -8:00,2027/01/04 11:30 -8:00, Lock",
+            },
+            Status.Lock, "01:05:00")]
+        public async Task TestGetInteractiveTimeSequences(
+            string[] periodsArray,
+            ScreenTime.Status expectedStatus, string expectedDuration)
+        {
+            var periods = periodsArray
+                .Select(p => p.Split(','))
+                .Select(p => (DateTimeOffset.Parse(p[0]), DateTimeOffset.Parse(p[1]), Enum.Parse<Status>(p[2])))
+                .ToArray();
+
+            FakeTimeProvider timeProvider = new FakeTimeProvider();
+            timeProvider.SetLocalTimeZone(TimeProvider.System.LocalTimeZone);
+            timeProvider.SetUtcNow(DateTimeOffset.Parse("2027/01/01 00:00 -8:00"));
+
+            var userStateProvider = new FakeUserStateProvider(timeProvider);
+
+            var mockUserConfiguration = new UserConfiguration(Guid.NewGuid(), "test");
+
+            using var service = new ScreenTimeLocalService(timeProvider, mockUserConfiguration, userStateProvider);
+
+            var expectedIntermediateDuration = TimeSpan.FromMinutes(0);
+
+            foreach (var period in periods)
+            {
+                var start = period.Item1;
+                var end = period.Item2;
+                var expectedIntermediateStatus = period.Item3;
+                var duration = end - start;
+
+                timeProvider.SetUtcNow(start.UtcDateTime);
+                service.StartSessionAsync();
+
+                timeProvider.SetUtcNow(end.UtcDateTime);
+                service.EndSessionAsync();
+
+                expectedIntermediateDuration += duration;
+
+                var intermediateResult = await service.GetInteractiveTimeAsync();
+
+                Assert.NotNull(intermediateResult);
+
+                // Assert.Equal(expectedIntermediateDuration, intermediateResult.LoggedInTime);
+                Assert.Equal(expectedIntermediateStatus, intermediateResult.Status);
+            }
+
+            var result = await service.GetInteractiveTimeAsync();
 
             Assert.NotNull(result);
             Assert.Equal(TimeSpan.Parse(expectedDuration), result.LoggedInTime);
