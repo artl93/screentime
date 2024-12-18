@@ -25,7 +25,7 @@ namespace ScreenTime
         private TimeSpan _resetTime;
         private ITimer callbackTimer;
         private bool disposedValue = false;
-        private ActivityState currentState = ActivityState.inactive;
+        private ActivityState currentState = ActivityState.Inactive;
         private bool disposedValue1;
         private UserState lastUserState;
 
@@ -143,7 +143,7 @@ namespace ScreenTime
         public void EndSessionAsync()
         {
             DoUpdateTime();
-            currentState = ActivityState.inactive;
+            currentState = ActivityState.Inactive;
         }
 
         public void StartSessionAsync()
