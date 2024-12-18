@@ -135,9 +135,8 @@ namespace ScreenTime
             var message = GetUserMessage();
             if (message != null)
             {
-                System.Diagnostics.Debug.WriteLine(message.Message);
+                OnMessageUpdate?.Invoke(this, new MessageEventArgs(message));
             }
-            OnMessageUpdate?.Invoke(this, new MessageEventArgs(message));
         }
 
         public void EndSessionAsync()
