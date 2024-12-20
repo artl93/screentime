@@ -1,19 +1,11 @@
 ﻿using Humanizer;
-using Microsoft.Extensions.Logging;
-using System;
-using System.Collections.Generic;
-using System.Dynamic;
-using System.Linq;
+using Microsoft.Extensions.Hosting;
 using System.Runtime.CompilerServices;
-using System.Text;
-using System.Threading.Tasks;
-using System.Xml.Linq;
-using static System.Windows.Forms.VisualStyles.VisualStyleElement.TaskbarClock;
 [assembly: InternalsVisibleTo("ScreenTimeTest")]
 
 namespace ScreenTime
 {
-    public partial class ScreenTimeLocalService : IScreenTimeStateClient, IDisposable
+    public partial class ScreenTimeLocalService : IScreenTimeStateClient, IDisposable, IHostedService
     {
         private DateTimeOffset lastKnownTime;
         private DateTimeOffset nextResetDate;
@@ -28,8 +20,8 @@ namespace ScreenTime
         private bool disposedValue1;
         private UserState lastUserState;
 
-        public event EventHandler? OnDayRollover;
-        public event EventHandler? OnTimeUpdate;
+        public event EventHandler<MessageEventArgs>? OnDayRollover;
+        public event EventHandler<UserStatusEventArgs>? OnTimeUpdate;
         public event EventHandler<UserStatusEventArgs>? OnUserStatusChanged;
 
 
@@ -39,26 +31,41 @@ namespace ScreenTime
             _timeProvider = timeProvider;
             configuration = userConfiguration;
             _stateProvider = stateProvider;
-            _resetTime = TimeSpan.Parse($"{userConfiguration.ResetTime}");
-            nextResetDate = GetNextResetTime(_resetTime);
 
-            stateProvider.LoadState(out lastKnownTime, out duration);
-            // data corruption issue
-            if (lastKnownTime == DateTimeOffset.MinValue || lastKnownTime.UtcDateTime - duration >= _timeProvider.GetUtcNow())
-            {
-                lastKnownTime = _timeProvider.GetUtcNow();
-                duration = TimeSpan.Zero;
-            }
-            // if it has been more than 24 hours since the last reset, reset the duration
-            else if (lastKnownTime.UtcDateTime <= nextResetDate.AddDays(-1) || duration >= TimeSpan.FromDays(1))
-            {
-                duration = TimeSpan.Zero;
-                lastKnownTime = _timeProvider.GetUtcNow();
-            }
+            _resetTime = TimeSpan.Zero;
+            callbackTimer = _timeProvider.CreateTimer(UpdateInteractiveTime, this, TimeSpan.FromSeconds(0.5), TimeSpan.FromSeconds(1));
 
-            // this should have been called in CreateTimer
-            DoUpdateTime();
-            callbackTimer = _timeProvider.CreateTimer(UpdateInteractiveTime, this, TimeSpan.Zero, TimeSpan.FromSeconds(1));
+        }
+
+        public Task StartAsync(CancellationToken cancellationToken)
+        {
+            return Task.Run(() =>
+            {
+                _resetTime = TimeSpan.Parse($"{configuration.ResetTime}");
+                nextResetDate = GetNextResetTime(_resetTime);
+
+                _stateProvider.LoadState(out lastKnownTime, out duration);
+                // data corruption issue
+                if (lastKnownTime == DateTimeOffset.MinValue || lastKnownTime.UtcDateTime - duration >= _timeProvider.GetUtcNow())
+                {
+                    lastKnownTime = _timeProvider.GetUtcNow();
+                    duration = TimeSpan.Zero;
+                }
+                // if it has been more than 24 hours since the last reset, reset the duration
+                else if (lastKnownTime.UtcDateTime <= nextResetDate.AddDays(-1) || duration >= TimeSpan.FromDays(1))
+                {
+                    duration = TimeSpan.Zero;
+                    lastKnownTime = _timeProvider.GetUtcNow();
+                }
+
+                // this should have been called in CreateTimer
+                DoUpdateTime();
+            }, cancellationToken);
+        }
+
+        public Task StopAsync(CancellationToken cancellationToken)
+        {
+            throw new NotImplementedException();
         }
 
         private DateTimeOffset GetNextResetTime(TimeSpan resetTime)
@@ -91,6 +98,7 @@ namespace ScreenTime
 
         private void DoUpdateTime()
         {
+            UpdateIdleTime();
             var currentTime = _timeProvider.GetUtcNow();
             var timeSinceLast = currentTime - lastKnownTime;
 
@@ -100,7 +108,12 @@ namespace ScreenTime
                 delta = currentState == ActivityState.Active ? delta.Add(TimeSpan.FromDays(delta.Days * -1)) : TimeSpan.FromMinutes(0);
                 nextResetDate = GetNextResetTime(_resetTime);
                 duration = delta;
-                OnDayRollover?.Invoke(this, EventArgs.Empty);
+                OnDayRollover?.Invoke(this, new MessageEventArgs(new UserMessage(
+                    "Day rollover",
+                    "It's a new day! Your time has been reset.",
+                    "🎉",
+                    "none"
+                    ) ));
             }
             else if (currentState == ActivityState.Active)
             {
@@ -108,7 +121,10 @@ namespace ScreenTime
             }
 
             lastKnownTime = currentTime;
-            OnTimeUpdate?.Invoke(this, EventArgs.Empty);
+            OnTimeUpdate?.Invoke(this, new UserStatusEventArgs(
+                GetUserStatus(duration, TimeSpan.FromMinutes(configuration.DailyLimitMinutes), TimeSpan.FromMinutes(configuration.WarningTimeMinutes), 
+                TimeSpan.FromMinutes(configuration.GraceMinutes)), 
+                currentTime, duration));
             PostStatusChanges();
             PostMessage();
         }
@@ -140,14 +156,14 @@ namespace ScreenTime
 
         public void EndSessionAsync()
         {
-            DoUpdateTime();
             currentState = ActivityState.Inactive;
+            // todo - ensure time transitioned here
         }
 
         public void StartSessionAsync()
         {
-            DoUpdateTime();
             currentState = ActivityState.Active;
+            // todo - ensure time transitioned here
         }
 
         public Task<UserStatus?> GetInteractiveTimeAsync()
@@ -225,6 +241,21 @@ namespace ScreenTime
         {
             return Task.FromResult<UserConfiguration?>(configuration);
         }
+
+        void UpdateIdleTime()
+        {
+            var idleTime = IdleTimeDetector.GetIdleTime();
+            if (idleTime.TotalMinutes >= 5) // Notify if idle for 5 minutes
+            {
+                EndSessionAsync();
+                Utilities.LogToConsole("The system has been idle for 5 minutes.");
+            }
+            else
+            {
+                StartSessionAsync();
+            }
+        }
+
 
         public void Reset()
         {

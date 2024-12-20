@@ -30,6 +30,11 @@ namespace ScreenTime
         private bool disposedValue;
         private readonly HttpClient _client = client;
 
+        public event EventHandler<MessageEventArgs>? OnDayRollover;
+        public event EventHandler<UserStatusEventArgs>? OnTimeUpdate;
+        public event EventHandler<UserStatusEventArgs>? OnUserStatusChanged;
+        public event EventHandler<MessageEventArgs>? OnMessageUpdate;
+
         public async void StartSessionAsync()
         {
             if (currentState == State.active)
@@ -117,6 +122,16 @@ namespace ScreenTime
         }
 
         public void Reset()
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task StartAsync(CancellationToken cancellationToken)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task StopAsync(CancellationToken cancellationToken)
         {
             throw new NotImplementedException();
         }

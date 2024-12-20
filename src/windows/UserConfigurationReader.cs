@@ -2,12 +2,12 @@
 
 namespace ScreenTime
 {
-    public static class UserConfigurationReader
+    public class UserConfigurationReader
     {
         const string _baseKey = @"HKEY_CURRENT_USER\Software\ScreenTime";
         const string _defaultResetTime = "06:00:00";
 
-        internal static UserConfiguration GetConfiguration()
+        public UserConfiguration GetConfiguration()
         {
             var dailyLimit = GetRegistryIntValue(_baseKey, "DailyLimit", 120);
             var warningTime = GetRegistryIntValue(_baseKey, "WarningTime", 10);

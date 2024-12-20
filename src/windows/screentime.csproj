@@ -9,6 +9,7 @@
     <UseWindowsForms>true</UseWindowsForms>
     <Description>this will monitor your screentime and put it in the taskbar. It will lock you out when you've exceeded your time plus a grace period.</Description>
     <Title>ScreenTime</Title>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
 
   <ItemGroup>
