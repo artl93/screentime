@@ -1,17 +1,10 @@
 ﻿namespace ScreenTime
 {
-    public class UserStatusEventArgs
+    public class UserStatusEventArgs(UserStatus status, DateTimeOffset dateTime, TimeSpan interactiveTime)
     {
-        public UserStatus Status { get; init; }
+        public UserStatus Status { get; init; } = status;
 
-        public DateTimeOffset DateTime { get; init; }
-        public TimeSpan InteractiveTime { get; init; }
-
-        public UserStatusEventArgs(UserStatus status, DateTimeOffset dateTime, TimeSpan interactiveTime)
-        {
-            this.Status = status;
-            this.DateTime = dateTime;
-            this.InteractiveTime = interactiveTime;
-        }
+        public DateTimeOffset DateTime { get; init; } = dateTime;
+        public TimeSpan InteractiveTime { get; init; } = interactiveTime;
     }
 }

@@ -13,7 +13,7 @@ namespace ScreenTime
     /// A client for the ScreenTimeService
     /// 
     /// </summary>
-    internal class ScreenTimeServiceClient : IScreenTimeStateClient 
+    internal class ScreenTimeServiceClient(HttpClient client) : IScreenTimeStateClient, IDisposable
     {
         enum State
         {
@@ -23,17 +23,17 @@ namespace ScreenTime
 
         State currentState = State.inactive;
 
-        JsonSerializerOptions options = new JsonSerializerOptions
+        readonly JsonSerializerOptions options = new()
         {
             PropertyNamingPolicy = JsonNamingPolicy.CamelCase
         };
         private bool disposedValue;
-        private readonly HttpClient _client;
+        private readonly HttpClient _client = client;
 
-        public ScreenTimeServiceClient(HttpClient client)
-        {
-            _client = client;
-        }
+        public event EventHandler<MessageEventArgs>? OnDayRollover;
+        public event EventHandler<UserStatusEventArgs>? OnTimeUpdate;
+        public event EventHandler<UserStatusEventArgs>? OnUserStatusChanged;
+        public event EventHandler<MessageEventArgs>? OnMessageUpdate;
 
         public async void StartSessionAsync()
         {
@@ -43,7 +43,7 @@ namespace ScreenTime
             }
 
             currentState = State.active;
-            var response = await _client.PutAsync($"events/start/{Environment.UserName}", null);
+            _ = await _client.PutAsync($"events/start/{Environment.UserName}", null);
         }
 
         public async Task<UserConfiguration?> GetUserConfigurationAsync()
@@ -68,7 +68,7 @@ namespace ScreenTime
                 return;
             }
             currentState = State.inactive;
-            var response = await _client.PutAsync($"events/end/{Environment.UserName}", null);
+            _ = await _client.PutAsync($"events/end/{Environment.UserName}", null);
         }
 
         public async Task<UserStatus?> GetInteractiveTimeAsync()
@@ -122,6 +122,16 @@ namespace ScreenTime
         }
 
         public void Reset()
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task StartAsync(CancellationToken cancellationToken)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task StopAsync(CancellationToken cancellationToken)
         {
             throw new NotImplementedException();
         }

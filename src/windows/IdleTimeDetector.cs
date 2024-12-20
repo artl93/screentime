@@ -1,33 +1,29 @@
 ﻿using System.Runtime.InteropServices;
 
-public class IdleTimeDetector
+namespace ScreenTime
 {
-
-    public static TimeSpan GetIdleTime()
+    public class IdleTimeDetector
     {
-        var lastInputInfo = new Win32.LASTINPUTINFO();
-        lastInputInfo.cbSize = (uint)Marshal.SizeOf(lastInputInfo);
-        Win32.GetLastInputInfo(ref lastInputInfo);
 
-        uint idleTime = (uint)Environment.TickCount - lastInputInfo.dwTime;
-        return TimeSpan.FromMilliseconds(idleTime);
+        [StructLayout(LayoutKind.Sequential)]
+        struct LASTINPUTINFO
+        {
+            public uint cbSize;
+            public uint dwTime;
+        }
+
+        [DllImport("user32.dll")]
+        static extern bool GetLastInputInfo(ref LASTINPUTINFO lastInputInfo);
+
+        public static TimeSpan GetIdleTime()
+        {
+            var lastInputInfo = new LASTINPUTINFO();
+            lastInputInfo.cbSize = (uint)Marshal.SizeOf(lastInputInfo);
+            GetLastInputInfo(ref lastInputInfo);
+
+            uint idleTime = (uint)Environment.TickCount - lastInputInfo.dwTime;
+            return TimeSpan.FromMilliseconds(idleTime);
+        }
     }
-}
-
-public class Win32
-{
-    [DllImport("user32.dll")]
-    public static extern bool LockWorkStation();
-
-
-    [StructLayout(LayoutKind.Sequential)]
-    public struct LASTINPUTINFO
-    {
-        public uint cbSize;
-        public uint dwTime;
-    }
-
-    [DllImport("user32.dll")]
-    public static extern bool GetLastInputInfo(ref LASTINPUTINFO plii);
 }
 

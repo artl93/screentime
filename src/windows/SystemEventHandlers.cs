@@ -5,7 +5,7 @@ namespace ScreenTime
 
     public class SystemEventHandlers
     {
-        private IScreenTimeStateClient _client;
+        private readonly IScreenTimeStateClient _client;
 
         public SystemEventHandlers(IScreenTimeStateClient client)
         {
