@@ -65,7 +65,10 @@ static class Program
                 services.AddSingleton<UserStateProvider>();
                 services.AddSingleton<LockProvider>();
                 services.AddSingleton<UserConfigurationReader>();
-                services.AddSingleton<HiddenForm>((sp) => new HiddenForm(sp.GetRequiredService<IScreenTimeStateClient>()));
+                services.AddSingleton((sp) => new HiddenForm(
+                    sp.GetRequiredService<IScreenTimeStateClient>(), 
+                    sp.GetRequiredService<LockProvider>()
+                    ));
             });
 
 

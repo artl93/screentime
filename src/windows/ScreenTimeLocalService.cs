@@ -19,6 +19,7 @@ namespace ScreenTime
         private ActivityState currentState = ActivityState.Inactive;
         private bool disposedValue1;
         private UserState lastUserState;
+        private DateTimeOffset lastMessageShown;
 
         public event EventHandler<MessageEventArgs>? OnDayRollover;
         public event EventHandler<UserStatusEventArgs>? OnTimeUpdate;
@@ -125,8 +126,14 @@ namespace ScreenTime
                 GetUserStatus(duration, TimeSpan.FromMinutes(configuration.DailyLimitMinutes), TimeSpan.FromMinutes(configuration.WarningTimeMinutes), 
                 TimeSpan.FromMinutes(configuration.GraceMinutes)), 
                 currentTime, duration));
-            PostStatusChanges();
-            PostMessage();
+            var newState = GetUserState();
+            var stateChanged = newState != lastUserState;
+            if (newState != lastUserState)
+            {
+                lastUserState = newState;
+                PostStatusChanges();
+            }
+            PostMessages(stateChanged);
         }
 
         private void PostStatusChanges()
@@ -136,17 +143,24 @@ namespace ScreenTime
             var warningTime = TimeSpan.FromMinutes(configuration.WarningTimeMinutes);
             var graceTime = TimeSpan.FromMinutes(configuration.GraceMinutes);
             var status = GetUserStatus(interactiveTime, dailyTimeLimit, warningTime, graceTime);
-            if (status.State != lastUserState)
-            {
-                lastUserState = status.State;
-                OnUserStatusChanged?.Invoke(this, new UserStatusEventArgs(status, _timeProvider.GetUtcNow(), interactiveTime));
-            }
+            OnUserStatusChanged?.Invoke(this, new UserStatusEventArgs(status, _timeProvider.GetUtcNow(), interactiveTime));
         }
 
         public event EventHandler<MessageEventArgs>? OnMessageUpdate;
 
-        private void PostMessage()
+        private void PostMessages(bool stateChanged)
         {
+            if (currentState == ActivityState.Inactive)
+            {
+                return;
+            }   
+
+            if (lastMessageShown < _timeProvider.GetUtcNow().AddMinutes(-15) && 
+                GetUserState() != UserState.Okay || 
+                !stateChanged)
+            {
+                return;
+            }
             var message = GetUserMessage();
             if (message != null)
             {
@@ -176,26 +190,50 @@ namespace ScreenTime
             return Task.FromResult<UserStatus?>(GetUserStatus(interactiveTime, dailyTimeLimit, warningTime, graceTime));
         }
 
-        private static UserStatus GetUserStatus(TimeSpan interactiveTime, TimeSpan dailyTimeLimit, TimeSpan warningTime, TimeSpan gracePeriod)
+        private UserState GetUserState()
         {
-            // get user status based on time logged in
-            // if the user has gone over the limit + the grade period, log them off
+            return GetUserState(duration);
+        }
+
+        private UserState GetUserState(TimeSpan interactiveTime)
+        {
+            var dailyTimeLimit = TimeSpan.FromMinutes(configuration.DailyLimitMinutes);
+            var warningTime = TimeSpan.FromMinutes(configuration.WarningTimeMinutes);
+            var graceTime = TimeSpan.FromMinutes(configuration.GraceMinutes);
+            return GetUserState(interactiveTime, dailyTimeLimit, warningTime, graceTime);
+        }
+
+        private static UserState GetUserState(TimeSpan interactiveTime, TimeSpan dailyTimeLimit, TimeSpan warningTime, TimeSpan gracePeriod)
+        {
             if (interactiveTime >= dailyTimeLimit + gracePeriod)
             {
-                return new UserStatus(interactiveTime, "🛡️", "logout", UserState.Lock, dailyTimeLimit);
+                return UserState.Lock;
             }
             else if (interactiveTime >= dailyTimeLimit)
             {
-                return new UserStatus(interactiveTime, "🛑", "logout", UserState.Error, dailyTimeLimit);
+                return UserState.Error;
             }
             else if (dailyTimeLimit - interactiveTime <= warningTime && dailyTimeLimit - interactiveTime > TimeSpan.Zero)
             {
-                return new UserStatus(interactiveTime, "⚠️", "none", UserState.Warn, dailyTimeLimit);
+                return UserState.Warn;
             }
             else
             {
-                return new UserStatus(interactiveTime, "⏳", "none", UserState.Okay, dailyTimeLimit);
+                return UserState.Okay;
             }
+        }
+
+        private static UserStatus GetUserStatus(TimeSpan interactiveTime, TimeSpan dailyTimeLimit, TimeSpan warningTime, TimeSpan gracePeriod)
+        {
+            var state = GetUserState(interactiveTime, dailyTimeLimit, warningTime, gracePeriod);
+            return state switch
+            {
+                UserState.Lock => new UserStatus(interactiveTime, "🛡️", "logout", UserState.Lock, dailyTimeLimit),
+                UserState.Error => new UserStatus(interactiveTime, "🛑", "logout", UserState.Error, dailyTimeLimit),
+                UserState.Warn => new UserStatus(interactiveTime, "⚠️", "none", UserState.Warn, dailyTimeLimit),
+                UserState.Okay => new UserStatus(interactiveTime, "⏳", "none", UserState.Okay, dailyTimeLimit),
+                _ => new UserStatus(interactiveTime, "❌", "none", UserState.Invalid, dailyTimeLimit)
+            };
         }
 
         public Task<UserMessage?> GetMessage()

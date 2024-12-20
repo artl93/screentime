@@ -3,15 +3,9 @@ using ScreenTime;
 
 internal class HiddenForm : Form
 {
-    public HiddenForm()
-    {
-    }
-
-
     private readonly NotifyIcon icon;
-    private bool disposedValue;
 
-    public HiddenForm(IScreenTimeStateClient client)
+    public HiddenForm(IScreenTimeStateClient client, LockProvider lockProvider)
     {
         this.WindowState = FormWindowState.Minimized;
         this.ShowInTaskbar = false;
@@ -27,7 +21,13 @@ internal class HiddenForm : Form
         icon.Visible = true;
         icon.Text = "Connecting...";
         client.OnMessageUpdate += (s, e) => ShowMessage(e.Message);
-        client.OnUserStatusChanged += (s, e) => UpdateTooltip(e.Status, e.InteractiveTime);
+        client.OnUserStatusChanged += (s, e) => { 
+            UpdateTooltip(e.Status, e.InteractiveTime);
+            if (e.Status.State == UserState.Lock)
+            {
+                lockProvider.Lock();
+            }
+        };
         client.OnDayRollover += (s, e) => ShowMessage(e.Message);
         client.OnTimeUpdate += (s, e) => UpdateTooltip(e.Status, e.InteractiveTime);
 
@@ -56,4 +56,5 @@ internal class HiddenForm : Form
         icon.BalloonTipText = (message.Icon ?? string.Empty) + " " + (message.Message ?? string.Empty);
         Task.Run(() => icon.ShowBalloonTip(1000));
     }
+
 }
