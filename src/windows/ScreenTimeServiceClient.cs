@@ -13,7 +13,7 @@ namespace ScreenTime
     /// A client for the ScreenTimeService
     /// 
     /// </summary>
-    internal class ScreenTimeServiceClient : IScreenTimeStateClient 
+    internal class ScreenTimeServiceClient(HttpClient client) : IScreenTimeStateClient, IDisposable
     {
         enum State
         {
@@ -23,17 +23,12 @@ namespace ScreenTime
 
         State currentState = State.inactive;
 
-        JsonSerializerOptions options = new JsonSerializerOptions
+        readonly JsonSerializerOptions options = new()
         {
             PropertyNamingPolicy = JsonNamingPolicy.CamelCase
         };
         private bool disposedValue;
-        private readonly HttpClient _client;
-
-        public ScreenTimeServiceClient(HttpClient client)
-        {
-            _client = client;
-        }
+        private readonly HttpClient _client = client;
 
         public async void StartSessionAsync()
         {
@@ -43,7 +38,7 @@ namespace ScreenTime
             }
 
             currentState = State.active;
-            var response = await _client.PutAsync($"events/start/{Environment.UserName}", null);
+            _ = await _client.PutAsync($"events/start/{Environment.UserName}", null);
         }
 
         public async Task<UserConfiguration?> GetUserConfigurationAsync()
@@ -68,7 +63,7 @@ namespace ScreenTime
                 return;
             }
             currentState = State.inactive;
-            var response = await _client.PutAsync($"events/end/{Environment.UserName}", null);
+            _ = await _client.PutAsync($"events/end/{Environment.UserName}", null);
         }
 
         public async Task<UserStatus?> GetInteractiveTimeAsync()

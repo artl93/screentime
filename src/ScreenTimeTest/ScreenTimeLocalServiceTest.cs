@@ -63,7 +63,7 @@ namespace ScreenTimeTest
         [InlineData("2026/12/24 06:00 -8:00", "2026/12/24 07:00 -8:00", "2026/12/23 08:00 -8:00", "02:00:00", "06:00", UserState.Error, "01:00:00")]
         [InlineData("2026/12/25 06:00 -8:00", "2026/12/26 07:00 -8:00", "2026/12/23 08:00 -8:00", "1.00:00:00", "06:00", UserState.Error, "01:00:00")]
 
-        async Task TestGetInteractiveTime(
+        public async Task TestGetInteractiveTime(
             string startString, string nowString, string lastKnownDate, string lastDuration, string resetTime,
             ScreenTime.UserState expectedStatus, string expectedDuration)
         {
@@ -72,7 +72,7 @@ namespace ScreenTimeTest
             var elapsed = now - start;
 ;
 
-            FakeTimeProvider timeProvider = new FakeTimeProvider(start);
+            FakeTimeProvider timeProvider = new(start);
             timeProvider.SetLocalTimeZone(TimeProvider.System.LocalTimeZone);
             
             var userStateProvider = new FakeUserStateProvider(lastKnownDate, lastDuration);
@@ -135,7 +135,7 @@ namespace ScreenTimeTest
                 .Select(p => (DateTimeOffset.Parse(p[0]), DateTimeOffset.Parse(p[1]), Enum.Parse<UserState>(p[2])))
                 .ToArray();
 
-            FakeTimeProvider timeProvider = new FakeTimeProvider();
+            FakeTimeProvider timeProvider = new();
             timeProvider.SetLocalTimeZone(TimeProvider.System.LocalTimeZone);
             timeProvider.SetUtcNow(DateTimeOffset.Parse("2027/01/01 00:00 -8:00"));
 

@@ -13,7 +13,6 @@ using static System.Windows.Forms.VisualStyles.VisualStyleElement.TaskbarClock;
 
 namespace ScreenTime
 {
-
     public partial class ScreenTimeLocalService : IScreenTimeStateClient, IDisposable
     {
         private DateTimeOffset lastKnownTime;
@@ -161,7 +160,7 @@ namespace ScreenTime
             return Task.FromResult<UserStatus?>(GetUserStatus(interactiveTime, dailyTimeLimit, warningTime, graceTime));
         }
 
-        private UserStatus GetUserStatus(TimeSpan interactiveTime, TimeSpan dailyTimeLimit, TimeSpan warningTime, TimeSpan gracePeriod)
+        private static UserStatus GetUserStatus(TimeSpan interactiveTime, TimeSpan dailyTimeLimit, TimeSpan warningTime, TimeSpan gracePeriod)
         {
             // get user status based on time logged in
             // if the user has gone over the limit + the grade period, log them off

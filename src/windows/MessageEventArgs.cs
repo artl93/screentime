@@ -1,12 +1,7 @@
 ﻿namespace ScreenTime
 {
-    public class MessageEventArgs
+    public class MessageEventArgs(UserMessage message)
     {
-        public UserMessage Message { get; init; }
-
-        public MessageEventArgs(UserMessage message)
-        {
-            this.Message = message;
-        }
+        public UserMessage Message { get; init; } = message;
     }
 }
