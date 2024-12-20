@@ -14,7 +14,7 @@ namespace ScreenTime
         public UserConfiguration configuration;
         private UserStateProvider _stateProvider;
         private TimeSpan _resetTime;
-        private ITimer callbackTimer;
+        private ITimer? callbackTimer;
         private bool disposedValue = false;
         private ActivityState currentState = ActivityState.Inactive;
         private bool disposedValue1;
@@ -35,7 +35,6 @@ namespace ScreenTime
             _stateProvider = stateProvider;
 
             _resetTime = TimeSpan.Zero;
-            callbackTimer = _timeProvider.CreateTimer(UpdateInteractiveTime, this, TimeSpan.FromSeconds(0.5), TimeSpan.FromSeconds(1));
 
         }
 
@@ -61,7 +60,8 @@ namespace ScreenTime
                 }
 
                 // this should have been called in CreateTimer
-                DoUpdateTime();
+                callbackTimer = _timeProvider.CreateTimer(UpdateInteractiveTime, this, TimeSpan.Zero, TimeSpan.FromSeconds(1));
+
             }, cancellationToken);
         }
 
@@ -125,16 +125,19 @@ namespace ScreenTime
                 GetUserStatus(duration, TimeSpan.FromMinutes(configuration.DailyLimitMinutes), TimeSpan.FromMinutes(configuration.WarningTimeMinutes), 
                 TimeSpan.FromMinutes(configuration.GraceMinutes)), 
                 currentTime, duration));
-            var newState = GetUserState();
-            var stateChanged = newState != lastUserState;
-            if (newState != lastUserState)
+            lock (this)
             {
-                lastUserState = newState;
-                PostStatusChanges();
+                var newState = GetUserState();
+                var stateChanged = newState != lastUserState;
+                if (newState != lastUserState)
+                {
+                    lastUserState = newState;
+                    PostStatusChanges();
+                }
+                PostMessages(stateChanged);
+                // save the state
+                _stateProvider.SaveState(lastKnownTime, duration, lastUserState, lastMessageShown);
             }
-            PostMessages(stateChanged);
-            // save the state
-            _stateProvider.SaveState(lastKnownTime, duration, lastUserState, lastMessageShown);
 
         }
 
@@ -151,11 +154,6 @@ namespace ScreenTime
 
         private void PostMessages(bool stateChanged)
         {
-            if (currentState == ActivityState.Inactive)
-            {
-                return;
-            }   
-
             // state change or debounced
             if (stateChanged || 
                 (_timeProvider.GetUtcNow() - lastMessageShown < TimeSpan.FromMinutes(1)))
@@ -322,7 +320,7 @@ namespace ScreenTime
             {
                 if (disposing)
                 {
-                    callbackTimer.Dispose();
+                    callbackTimer?.Dispose();
                     // TODO: dispose managed state (managed objects)
                 }
 
