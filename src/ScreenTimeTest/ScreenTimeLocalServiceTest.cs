@@ -24,7 +24,7 @@ namespace ScreenTimeTest
         [InlineData("2024/12/14 23:30 -8:00", "2024/12/15 00:30 -8:00", "2024/12/14 23:30 -8:00", "00:00:00", "00:00", UserState.Okay, "00:30:00")]
         [InlineData("2024/12/15 00:00 -8:00", "2024/12/15 00:30 -8:00", "2024/12/14 23:30 -8:00", "00:30:00", "00:00", UserState.Okay, "00:30:00")]
         [InlineData("2024/12/15 00:00 -8:00", "2024/12/15 00:30 -8:00", "2024/12/15 23:30 -8:00", "00:30:00", "00:00", UserState.Okay, "00:30:00")] // note, this is a bogus case, but it should still work
-        [InlineData("2024/12/15 02:00 -8:00", "2024/12/15 02:20 -8:00", "2024/12/15 01:00 -8:00", "00:30:00", "00:00", UserState.Warn, "00:50:00")] 
+        [InlineData("2024/12/15 02:00 -8:00", "2024/12/15 02:20 -8:00", "2024/12/15 01:15 -8:00", "00:30:00", "00:00", UserState.Warn, "00:50:00")] 
         [InlineData("2024/12/15 02:00 -8:00", "2024/12/15 02:34 -8:00", "2024/12/15 01:00 -8:00", "00:30:00", "00:00", UserState.Error, "01:04:00")]
         [InlineData("2024/12/15 02:00 -8:00", "2024/12/15 02:35 -8:00", "2024/12/15 01:00 -8:00", "00:30:00", "00:00", UserState.Lock, "01:05:00")]
         [InlineData("2024/12/15 02:00 -8:00", "2024/12/15 02:30 -8:00", "2024/12/15 01:00 -8:00", "00:30:00", "00:00", UserState.Error, "01:00:00")]
@@ -80,11 +80,13 @@ namespace ScreenTimeTest
             var mockUserConfiguration = new UserConfiguration(Guid.NewGuid(), "test", ResetTime: resetTime);
 
             using var service = new ScreenTimeLocalService(timeProvider, mockUserConfiguration, userStateProvider);
+            await service.StartAsync(CancellationToken.None);
             service.StartSessionAsync();
             timeProvider.Advance(elapsed);
 
             var result = await service.GetInteractiveTimeAsync();
             service.EndSessionAsync();
+            await service.StopAsync(CancellationToken.None);
 
             Assert.NotNull(result);
             Assert.Equal(TimeSpan.Parse(expectedDuration), result.LoggedInTime);
@@ -144,6 +146,7 @@ namespace ScreenTimeTest
             var mockUserConfiguration = new UserConfiguration(Guid.NewGuid(), "test");
 
             using var service = new ScreenTimeLocalService(timeProvider, mockUserConfiguration, userStateProvider);
+            await service.StartAsync(CancellationToken.None);
 
             var expectedIntermediateDuration = TimeSpan.FromMinutes(0);
 
@@ -159,6 +162,7 @@ namespace ScreenTimeTest
 
                 timeProvider.SetUtcNow(end.UtcDateTime);
                 service.EndSessionAsync();
+                await service.StopAsync(CancellationToken.None);
 
                 expectedIntermediateDuration += duration;
 

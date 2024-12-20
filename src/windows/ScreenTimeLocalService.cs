@@ -24,6 +24,7 @@ namespace ScreenTime
         public event EventHandler<MessageEventArgs>? OnDayRollover;
         public event EventHandler<UserStatusEventArgs>? OnTimeUpdate;
         public event EventHandler<UserStatusEventArgs>? OnUserStatusChanged;
+        public event EventHandler<MessageEventArgs>? OnMessageUpdate;
 
 
 
@@ -45,7 +46,7 @@ namespace ScreenTime
                 _resetTime = TimeSpan.Parse($"{configuration.ResetTime}");
                 nextResetDate = GetNextResetTime(_resetTime);
 
-                _stateProvider.LoadState(out lastKnownTime, out duration);
+                _stateProvider.LoadState(out lastKnownTime, out duration, out lastUserState, out lastMessageShown);
                 // data corruption issue
                 if (lastKnownTime == DateTimeOffset.MinValue || lastKnownTime.UtcDateTime - duration >= _timeProvider.GetUtcNow())
                 {
@@ -66,7 +67,7 @@ namespace ScreenTime
 
         public Task StopAsync(CancellationToken cancellationToken)
         {
-            throw new NotImplementedException();
+            return Task.CompletedTask;
         }
 
         private DateTimeOffset GetNextResetTime(TimeSpan resetTime)
@@ -92,8 +93,6 @@ namespace ScreenTime
                 return;
             }
             DoUpdateTime();
-            // save the state
-            _stateProvider.SaveState(lastKnownTime, duration);
         }
 
 
@@ -134,6 +133,9 @@ namespace ScreenTime
                 PostStatusChanges();
             }
             PostMessages(stateChanged);
+            // save the state
+            _stateProvider.SaveState(lastKnownTime, duration, lastUserState, lastMessageShown);
+
         }
 
         private void PostStatusChanges()
@@ -146,7 +148,6 @@ namespace ScreenTime
             OnUserStatusChanged?.Invoke(this, new UserStatusEventArgs(status, _timeProvider.GetUtcNow(), interactiveTime));
         }
 
-        public event EventHandler<MessageEventArgs>? OnMessageUpdate;
 
         private void PostMessages(bool stateChanged)
         {
@@ -155,9 +156,9 @@ namespace ScreenTime
                 return;
             }   
 
-            if (lastMessageShown < _timeProvider.GetUtcNow().AddMinutes(-15) && 
-                GetUserState() != UserState.Okay || 
-                !stateChanged)
+            // state change or debounced
+            if (stateChanged || 
+                (_timeProvider.GetUtcNow() - lastMessageShown < TimeSpan.FromMinutes(1)))
             {
                 return;
             }
@@ -165,12 +166,15 @@ namespace ScreenTime
             if (message != null)
             {
                 OnMessageUpdate?.Invoke(this, new MessageEventArgs(message));
+                lastMessageShown = _timeProvider.GetUtcNow();
             }
         }
 
         public void EndSessionAsync()
         {
+
             currentState = ActivityState.Inactive;
+            DoUpdateTime();
             // todo - ensure time transitioned here
         }
 
@@ -178,6 +182,7 @@ namespace ScreenTime
         {
             currentState = ActivityState.Active;
             // todo - ensure time transitioned here
+            DoUpdateTime();
         }
 
         public Task<UserStatus?> GetInteractiveTimeAsync()
@@ -285,15 +290,24 @@ namespace ScreenTime
             var idleTime = IdleTimeDetector.GetIdleTime();
             if (idleTime.TotalMinutes >= 5) // Notify if idle for 5 minutes
             {
-                EndSessionAsync();
+                EndSessionInternal();
                 Utilities.LogToConsole("The system has been idle for 5 minutes.");
             }
             else
             {
-                StartSessionAsync();
+                StartSessionInternal();
             }
         }
 
+        private void EndSessionInternal()
+        {
+            // currentState = ActivityState.Inactive;
+        }
+
+        private void StartSessionInternal()
+        {
+            // currentState = ActivityState.Active;
+        }
 
         public void Reset()
         {
