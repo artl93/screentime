@@ -1,13 +1,8 @@
-﻿using Microsoft.VisualBasic.ApplicationServices;
-using System.Text.Json;
-using System.DirectoryServices.AccountManagement;
-using System.Runtime.InteropServices;
-using ScreenTime;
+﻿using ScreenTime;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Win32;
 using Microsoft.Extensions.Hosting;
-using static System.Net.Mime.MediaTypeNames;
-using System.ComponentModel.Design;
+using Microsoft.Extensions.Logging;
 using Application = System.Windows.Forms.Application;
 
 
@@ -25,16 +20,15 @@ static class Program
         // ordering is important here to hook the event handlers
         var form = ServiceProvider.GetRequiredService<HiddenForm>();
         var client = ServiceProvider.GetRequiredService<IScreenTimeStateClient>();
-        client.StartSessionAsync();
+        client.StartSessionAsync("start program");
         host.Start();
 
 
         Application.Run(form);
-        client.EndSessionAsync();
+        client.EndSessionAsync("end program");
 
         host.StopAsync().Wait();
-
-    }
+     }
     public static IServiceProvider? ServiceProvider { get; private set; }
 
     static IHostBuilder CreateHostBuilder(string[] args)
@@ -52,10 +46,17 @@ static class Program
                         "develop" => new ScreenTimeServiceClient(serviceProvider.GetRequiredService<HttpClient>()).SetBaseAddress("https://localhost:7186"),
                         "live" => new ScreenTimeServiceClient(serviceProvider.GetRequiredService<HttpClient>()).SetBaseAddress("https://screentime.azurewebsites.net"),
                         _ => new ScreenTimeLocalService(serviceProvider.GetRequiredService<TimeProvider>(),
-                    serviceProvider.GetRequiredService<UserConfigurationReader>().GetConfiguration(),
-                    serviceProvider.GetRequiredService<UserStateProvider>())
+                            serviceProvider.GetRequiredService<UserConfigurationReader>().GetConfiguration(),
+                            serviceProvider.GetRequiredService<UserStateProvider>(), 
+                            serviceProvider.GetRequiredService<ILogger<ScreenTimeLocalService>>())
                     };
                     return client;
+                });
+                services.AddLogging(builder =>
+                {
+                    builder.AddConsole();
+                    builder.AddDebug();
+                    builder.AddFile("screentime.");
                 });
                 services.AddSingleton((sp) => new SystemEventHandlers(sp.GetRequiredService<IScreenTimeStateClient>()));
                 services.AddSingleton(TimeProvider.System);
@@ -72,9 +73,10 @@ static class Program
                 services.AddSingleton<UserConfigurationReader>();
                 services.AddSingleton((sp) => new HiddenForm(
                     sp.GetRequiredService<IScreenTimeStateClient>(), 
-                    sp.GetRequiredService<LockProvider>()
+                    sp.GetRequiredService<LockProvider>(),
+                    sp.GetRequiredService<ILogger<HiddenForm>>()
                     ));
-            });
+    });
 
 
         // if not set, write to the registry to run this application on on startup

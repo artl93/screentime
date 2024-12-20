@@ -8,9 +8,8 @@ namespace ScreenTime
         [DllImport("user32.dll")]
         static extern bool LockWorkStation();
 
-        public async void Lock()
+        public void Lock()
         {
-            await Task.Delay(10000);
             LockWorkStation();
         }
 

@@ -135,5 +135,15 @@ namespace ScreenTime
         {
             throw new NotImplementedException();
         }
+
+        public void EndSessionAsync(string reason)
+        {
+            throw new NotImplementedException();
+        }
+
+        public void StartSessionAsync(string reason)
+        {
+            throw new NotImplementedException();
+        }
     }
 }

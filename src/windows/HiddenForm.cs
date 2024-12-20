@@ -1,11 +1,12 @@
 ﻿
+using Microsoft.Extensions.Logging;
 using ScreenTime;
 
 internal class HiddenForm : Form
 {
     private readonly NotifyIcon icon;
 
-    public HiddenForm(IScreenTimeStateClient client, LockProvider lockProvider)
+    public HiddenForm(IScreenTimeStateClient client, LockProvider lockProvider, ILogger? logger)
     {
         this.WindowState = FormWindowState.Minimized;
         this.ShowInTaskbar = false;
@@ -20,21 +21,32 @@ internal class HiddenForm : Form
         icon.ContextMenuStrip.Items.Add("Exit", null, (s, e) => { icon.Visible = false; Environment.Exit(0); });
         icon.Visible = true;
         icon.Text = "Connecting...";
-        client.OnMessageUpdate += (s, e) => ShowMessage(e.Message);
+        client.OnMessageUpdate += (s, e) =>
+        {
+            logger?.LogWarning($"Message update: {e.Message.Message}");
+            ShowMessage(e.Message);
+        } ;
         client.OnUserStatusChanged += (s, e) =>
         {
-            UpdateTooltip(e.Status, e.InteractiveTime);
+            logger?.LogWarning($"User status changed: {Enum.GetName(e.Status.State)} - {e.Status.LoggedInTime}");
+            UpdateTooltip(e.Status);
             if (e.Status.State == UserState.Lock)
             {
+                logger?.LogWarning("Locking workstation.");
+                Task.Delay(10000);
                 lockProvider.Lock();
             }
         };
-        client.OnDayRollover += (s, e) => ShowMessage(e.Message);
-        client.OnTimeUpdate += (s, e) => UpdateTooltip(e.Status, e.InteractiveTime);
+        client.OnDayRollover += (s, e) =>
+        {
+            logger?.LogInformation($"Day rollover.{e.Message}");
+            ShowMessage(e.Message);
+        };
+        client.OnTimeUpdate += (s, e) => UpdateTooltip(e.Status);
 
     }
 
-    private void UpdateTooltip(UserStatus status, TimeSpan interactiveTime)
+    private void UpdateTooltip(UserStatus status)
     {
         var humanizedUptime = Humanizer.TimeSpanHumanizeExtensions.Humanize(status.LoggedInTime, 2);
         var humanizedDailyLimit = Humanizer.TimeSpanHumanizeExtensions.Humanize(status.DailyTimeLimit, 2);

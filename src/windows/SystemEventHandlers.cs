@@ -24,14 +24,14 @@ namespace ScreenTime
 
         void SystemEvents_SessionEnding(object sender, SessionEndingEventArgs e)
         {
+            
+            _client.EndSessionAsync(Enum.GetName(e.Reason)??string.Empty);
             switch (e.Reason)
             {
                 case SessionEndReasons.Logoff:
-                    _client.EndSessionAsync();
                     Utilities.LogToConsole("The session is ending because the user is logging off.");
                     break;
                 case SessionEndReasons.SystemShutdown:
-                    _client.EndSessionAsync();
                     Utilities.LogToConsole("The session is ending because the system is shutting down.");
                     break;
             }
@@ -42,11 +42,11 @@ namespace ScreenTime
             switch (e.Mode)
             {
                 case PowerModes.Resume:
-                    _client.StartSessionAsync();
+                    _client.StartSessionAsync(Enum.GetName(e.Mode) ?? string.Empty);
                     Utilities.LogToConsole("The system is resuming from a suspended state.");
                     break;
                 case PowerModes.Suspend:
-                    _client.EndSessionAsync();
+                    _client.EndSessionAsync(Enum.GetName(e.Mode) ?? string.Empty);
                     Utilities.LogToConsole("The system is entering a suspended state.");
                     break;
             }
@@ -60,12 +60,13 @@ namespace ScreenTime
                 case SessionSwitchReason.SessionLock:
                 case SessionSwitchReason.SessionLogoff:
                 case SessionSwitchReason.ConsoleDisconnect:
-                    _client.EndSessionAsync();
+                    _client.EndSessionAsync(Enum.GetName(e.Reason) ?? string.Empty);
                     break;
                 case SessionSwitchReason.SessionUnlock:
                 case SessionSwitchReason.SessionLogon:
                 case SessionSwitchReason.ConsoleConnect:
-                    _client.StartSessionAsync();
+                    _client.StartSessionAsync(Enum.GetName(e.Reason)??string.Empty);
+
                     break;
             }
         }

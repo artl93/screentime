@@ -1,19 +1,20 @@
 ﻿using Humanizer;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using System.Runtime.CompilerServices;
 [assembly: InternalsVisibleTo("ScreenTimeTest")]
 
 namespace ScreenTime
 {
-    public partial class ScreenTimeLocalService : IScreenTimeStateClient, IDisposable, IHostedService
+    public partial class ScreenTimeLocalService(TimeProvider timeProvider, UserConfiguration userConfiguration, UserStateProvider stateProvider, ILogger? logger) : IScreenTimeStateClient, IDisposable, IHostedService
     {
         private DateTimeOffset lastKnownTime;
         private DateTimeOffset nextResetDate;
         private TimeSpan duration;
-        private TimeProvider _timeProvider;
-        public UserConfiguration configuration;
-        private UserStateProvider _stateProvider;
-        private TimeSpan _resetTime;
+        private TimeProvider _timeProvider = timeProvider;
+        public UserConfiguration configuration = userConfiguration;
+        private UserStateProvider _stateProvider = stateProvider;
+        private TimeSpan _resetTime = TimeSpan.Zero;
         private ITimer? callbackTimer;
         private bool disposedValue = false;
         private ActivityState activityState = ActivityState.Unknown;
@@ -21,6 +22,7 @@ namespace ScreenTime
         private UserState lastUserState;
         private DateTimeOffset lastMessageShown;
         bool started = false;
+        private readonly ILogger? logger = logger;
 
         public event EventHandler<MessageEventArgs>? OnDayRollover;
         public event EventHandler<UserStatusEventArgs>? OnTimeUpdate;
@@ -28,19 +30,9 @@ namespace ScreenTime
         public event EventHandler<MessageEventArgs>? OnMessageUpdate;
 
 
-
-        public ScreenTimeLocalService(TimeProvider timeProvider, UserConfiguration userConfiguration, UserStateProvider stateProvider)
-        {
-            _timeProvider = timeProvider;
-            configuration = userConfiguration;
-            _stateProvider = stateProvider;
-
-            _resetTime = TimeSpan.Zero;
-
-        }
-
         public Task StartAsync(CancellationToken cancellationToken)
         {
+            logger?.LogInformation("Starting ScreenTimeLocalService");
             _resetTime = TimeSpan.Parse($"{configuration.ResetTime}");
             nextResetDate = GetNextResetTime(_resetTime);
 
@@ -75,6 +67,7 @@ namespace ScreenTime
 
         public Task StopAsync(CancellationToken cancellationToken)
         {
+            logger?.LogInformation("Stopping ScreenTimeLocalService");
             return Task.CompletedTask;
         }
 
@@ -86,10 +79,12 @@ namespace ScreenTime
 
             if (utcResetTime <= _timeProvider.GetUtcNow())
             {
+                logger?.LogInformation("Next reset time is {0}", utcResetTime.AddDays(1));
                 return utcResetTime.AddDays(1);
             }
             else
             {
+                logger?.LogInformation("Next reset time is {0}", utcResetTime);
                 return utcResetTime;
             }
         }
@@ -103,7 +98,7 @@ namespace ScreenTime
             DoUpdateTime();
         }
 
-
+        
         private void DoUpdateTime()
         {
             if (!started)
@@ -184,16 +179,18 @@ namespace ScreenTime
             }
         }
 
-        public void EndSessionAsync()
+        public void EndSessionAsync(string reason)
         {
-
+            logger?.LogInformation($"End session called ({reason})");
             activityState = ActivityState.Inactive;
             DoUpdateTime();
             // todo - ensure time transitioned here
         }
 
-        public void StartSessionAsync()
+       
+        public void StartSessionAsync(string reason)
         {
+            logger?.LogInformation($"Start session called. ({reason})");
             activityState = ActivityState.Active;
             // todo - ensure time transitioned here
             DoUpdateTime();
@@ -325,6 +322,7 @@ namespace ScreenTime
 
         public void Reset()
         {
+            logger?.LogCritical("User time was reset!");
             lastKnownTime = _timeProvider.GetUtcNow();
             duration = TimeSpan.Zero;
             nextResetDate = GetNextResetTime(_resetTime);

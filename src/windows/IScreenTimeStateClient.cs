@@ -10,11 +10,11 @@ namespace ScreenTime
         event EventHandler<UserStatusEventArgs>? OnUserStatusChanged;
         event EventHandler<MessageEventArgs>? OnMessageUpdate;
 
-        public void EndSessionAsync();
+        public void EndSessionAsync(string reason);
         public Task<UserStatus?> GetInteractiveTimeAsync();
         public Task<UserMessage?> GetMessage();
         public Task<UserConfiguration?> GetUserConfigurationAsync();
         void Reset();
-        public void StartSessionAsync();
+        public void StartSessionAsync(string reason);
     }
 }
