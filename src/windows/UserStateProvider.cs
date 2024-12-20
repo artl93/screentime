@@ -7,26 +7,30 @@ namespace ScreenTime
         const string _baseKey = @"HKEY_CURRENT_USER\Software\ScreenTime";
 
 
-        public virtual void SaveState(DateTimeOffset lastKnownTime, TimeSpan duration, UserState state, DateTimeOffset timeLastMessageShown)
+        public virtual void SaveState(DateTimeOffset lastKnownTime, TimeSpan duration, UserState state, DateTimeOffset timeLastMessageShown, ActivityState activityState)
         {
             // write the time to the registry
             Registry.SetValue(_baseKey, "Last", lastKnownTime.UtcDateTime.ToString("o"));
             Registry.SetValue(_baseKey, "Cumulative", duration.ToString("G"));
             Registry.SetValue(_baseKey, "State", state.ToString());
             Registry.SetValue(_baseKey, "LastMessage", timeLastMessageShown.UtcDateTime.ToString("o"));
+            Registry.SetValue(_baseKey, "ActivityState", activityState.ToString());
+
         }
 
-        public virtual void LoadState(out DateTimeOffset lastKnownTime, out TimeSpan duration, out UserState state, out DateTimeOffset timeLastMessageShown)
+        public virtual void LoadState(out DateTimeOffset lastKnownTime, out TimeSpan duration, out UserState state, out DateTimeOffset timeLastMessageShown, out ActivityState activityState)
         {
             lastKnownTime = DateTimeOffset.MinValue;
             duration = TimeSpan.Zero;
             state = UserState.Okay;
             timeLastMessageShown = DateTimeOffset.MinValue;
+            activityState = ActivityState.Unknown;
             // load the last known time and duration from the registry
             var lastKnownTimeObject = Registry.GetValue(_baseKey, "Last", null);
             var durationObject = Registry.GetValue(_baseKey, "Cumulative", null);
             var stateObject = Registry.GetValue(_baseKey, "State", null);
             var timeLastMessageShownObject = Registry.GetValue(_baseKey, "LastMessage", null);
+            var activityStateObject = Registry.GetValue(_baseKey, "ActivityState", null);
             if (lastKnownTimeObject != null)
             {
                 _ = DateTimeOffset.TryParse(lastKnownTimeObject.ToString(), out lastKnownTime);
@@ -42,6 +46,10 @@ namespace ScreenTime
             if (timeLastMessageShownObject != null)
             {
                 _ = DateTimeOffset.TryParse(timeLastMessageShownObject.ToString(), out timeLastMessageShown);
+            }
+            if (activityStateObject != null)
+            {
+                _ = Enum.TryParse(activityStateObject.ToString(), out activityState);
             }
         }
     }

@@ -8,7 +8,7 @@ using Microsoft.Extensions.Time.Testing;
 using Microsoft.VisualStudio.TestPlatform.CommunicationUtilities;
 
 namespace ScreenTimeTest
-{ 
+{
     public partial class ScreenTimeLocalServiceTest
     {
 
@@ -24,7 +24,7 @@ namespace ScreenTimeTest
         [InlineData("2024/12/14 23:30 -8:00", "2024/12/15 00:30 -8:00", "2024/12/14 23:30 -8:00", "00:00:00", "00:00", UserState.Okay, "00:30:00")]
         [InlineData("2024/12/15 00:00 -8:00", "2024/12/15 00:30 -8:00", "2024/12/14 23:30 -8:00", "00:30:00", "00:00", UserState.Okay, "00:30:00")]
         [InlineData("2024/12/15 00:00 -8:00", "2024/12/15 00:30 -8:00", "2024/12/15 23:30 -8:00", "00:30:00", "00:00", UserState.Okay, "00:30:00")] // note, this is a bogus case, but it should still work
-        [InlineData("2024/12/15 02:00 -8:00", "2024/12/15 02:20 -8:00", "2024/12/15 01:15 -8:00", "00:30:00", "00:00", UserState.Warn, "00:50:00")] 
+        [InlineData("2024/12/15 02:00 -8:00", "2024/12/15 02:20 -8:00", "2024/12/15 01:15 -8:00", "00:30:00", "00:00", UserState.Warn, "00:50:00")]
         [InlineData("2024/12/15 02:00 -8:00", "2024/12/15 02:34 -8:00", "2024/12/15 01:00 -8:00", "00:30:00", "00:00", UserState.Error, "01:04:00")]
         [InlineData("2024/12/15 02:00 -8:00", "2024/12/15 02:35 -8:00", "2024/12/15 01:00 -8:00", "00:30:00", "00:00", UserState.Lock, "01:05:00")]
         [InlineData("2024/12/15 02:00 -8:00", "2024/12/15 02:30 -8:00", "2024/12/15 01:00 -8:00", "00:30:00", "00:00", UserState.Error, "01:00:00")]
@@ -70,11 +70,11 @@ namespace ScreenTimeTest
             var start = DateTimeOffset.Parse(startString);
             var now = DateTimeOffset.Parse(nowString);
             var elapsed = now - start;
-;
+            ;
 
             FakeTimeProvider timeProvider = new(start);
             timeProvider.SetLocalTimeZone(TimeProvider.System.LocalTimeZone);
-            
+
             var userStateProvider = new FakeUserStateProvider(lastKnownDate, lastDuration);
 
             var mockUserConfiguration = new UserConfiguration(Guid.NewGuid(), "test", ResetTime: resetTime);
@@ -95,8 +95,8 @@ namespace ScreenTimeTest
 
         [Theory]
         [InlineData(
-            new string[] 
-            { 
+            new string[]
+            {
                 "2027/01/01 06:00 -8:00,2027/01/01 06:30 -8:00, Okay",
                 "2027/01/01 08:00 -8:00,2027/01/01 08:30 -8:00, Error",
             },
@@ -181,5 +181,82 @@ namespace ScreenTimeTest
             Assert.Equal(expectedStatus, result.State);
         }
 
+
+        [Fact]
+        public async Task TestOnDayRollover()
+        {
+            var start = DateTimeOffset.Parse("2024/12/14 00:00 -8:00");
+            FakeTimeProvider timeProvider = new(start);
+            timeProvider.SetLocalTimeZone(TimeProvider.System.LocalTimeZone);
+
+            var userStateProvider = new FakeUserStateProvider(start.ToString(), "00:00:00");
+            var mockUserConfiguration = new UserConfiguration(Guid.NewGuid(), "test");
+
+            using var service = new ScreenTimeLocalService(timeProvider, mockUserConfiguration, userStateProvider);
+            var eventTriggered = false;
+            service.OnDayRollover += (sender, args) => eventTriggered = true;
+
+            await service.StartAsync(CancellationToken.None);
+            service.StartSessionAsync();
+            timeProvider.Advance(TimeSpan.FromDays(1));
+            await service.StopAsync(CancellationToken.None);
+
+            Assert.True(eventTriggered);
+        }
+
+        [Fact]
+        public async Task TestOnTimeUpdate()
+        {
+            var start = DateTimeOffset.Parse("2024/12/14 00:00 -8:00");
+            FakeTimeProvider timeProvider = new(start);
+            timeProvider.SetLocalTimeZone(TimeProvider.System.LocalTimeZone);
+            var userStateProvider = new FakeUserStateProvider(start.ToString(), "00:00:00");
+            var mockUserConfiguration = new UserConfiguration(Guid.NewGuid(), "test");
+            using var service = new ScreenTimeLocalService(timeProvider, mockUserConfiguration, userStateProvider);
+            var eventTriggered = false;
+            service.OnTimeUpdate += (sender, args) => eventTriggered = true;
+            await service.StartAsync(CancellationToken.None);
+            service.StartSessionAsync();
+            timeProvider.Advance(TimeSpan.FromMinutes(1));
+            await service.StopAsync(CancellationToken.None);
+            Assert.True(eventTriggered);
+        }
+
+        [Fact]
+        public async Task TestOnUserStatusChanged()
+        {
+            var start = DateTimeOffset.Parse("2024/12/14 00:00 -8:00");
+            FakeTimeProvider timeProvider = new(start);
+            timeProvider.SetLocalTimeZone(TimeProvider.System.LocalTimeZone);
+            var userStateProvider = new FakeUserStateProvider(start.ToString(), "00:00:00");
+            var mockUserConfiguration = new UserConfiguration(Guid.NewGuid(), "test");
+            using var service = new ScreenTimeLocalService(timeProvider, mockUserConfiguration, userStateProvider);
+            var eventTriggered = false;
+            service.OnUserStatusChanged += (sender, args) => eventTriggered = true;
+            await service.StartAsync(CancellationToken.None);
+            service.StartSessionAsync();
+            timeProvider.Advance(TimeSpan.FromHours(2));
+            await service.StopAsync(CancellationToken.None);
+            Assert.True(eventTriggered);
+        }
+
+        [Fact]
+        public async Task TestOnMessageUpdateChanged()
+        {
+            var start = DateTimeOffset.Parse("2024/12/14 00:00 -8:00");
+            FakeTimeProvider timeProvider = new(start);
+            timeProvider.SetLocalTimeZone(TimeProvider.System.LocalTimeZone);
+            var userStateProvider = new FakeUserStateProvider(start.ToString(), "00:00:00");
+            var mockUserConfiguration = new UserConfiguration(Guid.NewGuid(), "test");
+            using var service = new ScreenTimeLocalService(timeProvider, mockUserConfiguration, userStateProvider);
+            var eventTriggered = false;
+            service.OnMessageUpdate += (sender, args) => eventTriggered = true;
+            await service.StartAsync(CancellationToken.None);
+            service.StartSessionAsync();
+            timeProvider.Advance(TimeSpan.FromMinutes(1));
+            await service.StopAsync(CancellationToken.None);
+            Assert.True(eventTriggered);
+        }
     }
 }
+

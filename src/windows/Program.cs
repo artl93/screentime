@@ -22,10 +22,15 @@ static class Program
 
         var host = CreateHostBuilder(args).Build();
         ServiceProvider = host.Services;
+        // ordering is important here to hook the event handlers
+        var form = ServiceProvider.GetRequiredService<HiddenForm>();
+        var client = ServiceProvider.GetRequiredService<IScreenTimeStateClient>();
+        client.StartSessionAsync();
         host.Start();
 
 
-        Application.Run(ServiceProvider.GetRequiredService<HiddenForm>());
+        Application.Run(form);
+        client.EndSessionAsync();
 
         host.StopAsync().Wait();
 

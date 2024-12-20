@@ -21,7 +21,8 @@ internal class HiddenForm : Form
         icon.Visible = true;
         icon.Text = "Connecting...";
         client.OnMessageUpdate += (s, e) => ShowMessage(e.Message);
-        client.OnUserStatusChanged += (s, e) => { 
+        client.OnUserStatusChanged += (s, e) =>
+        {
             UpdateTooltip(e.Status, e.InteractiveTime);
             if (e.Status.State == UserState.Lock)
             {

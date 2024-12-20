@@ -2,12 +2,10 @@
 namespace ScreenTime
 {
 
-    public partial class ScreenTimeLocalService
+    public enum ActivityState
     {
-        enum ActivityState
-        {
-            Active,
-            Inactive
-        }
+        Active,
+        Inactive,
+        Unknown
     }
 }

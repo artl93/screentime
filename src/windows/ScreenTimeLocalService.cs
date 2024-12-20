@@ -16,10 +16,11 @@ namespace ScreenTime
         private TimeSpan _resetTime;
         private ITimer? callbackTimer;
         private bool disposedValue = false;
-        private ActivityState currentState = ActivityState.Inactive;
+        private ActivityState activityState = ActivityState.Unknown;
         private bool disposedValue1;
         private UserState lastUserState;
         private DateTimeOffset lastMessageShown;
+        bool started = false;
 
         public event EventHandler<MessageEventArgs>? OnDayRollover;
         public event EventHandler<UserStatusEventArgs>? OnTimeUpdate;
@@ -40,29 +41,29 @@ namespace ScreenTime
 
         public Task StartAsync(CancellationToken cancellationToken)
         {
-            return Task.Run(() =>
+            _resetTime = TimeSpan.Parse($"{configuration.ResetTime}");
+            nextResetDate = GetNextResetTime(_resetTime);
+
+            _stateProvider.LoadState(out lastKnownTime, out duration, out lastUserState, out lastMessageShown, out activityState);
+            // data corruption issue
+            if (lastKnownTime == DateTimeOffset.MinValue || lastKnownTime.UtcDateTime - duration >= _timeProvider.GetUtcNow())
             {
-                _resetTime = TimeSpan.Parse($"{configuration.ResetTime}");
-                nextResetDate = GetNextResetTime(_resetTime);
+                lastKnownTime = _timeProvider.GetUtcNow();
+                duration = TimeSpan.Zero;
+            }
+            // if it has been more than 24 hours since the last reset, reset the duration
+            else if (lastKnownTime.UtcDateTime <= nextResetDate.AddDays(-1) || duration >= TimeSpan.FromDays(1))
+            {
+                duration = TimeSpan.Zero;
+                lastKnownTime = _timeProvider.GetUtcNow();
+            }
 
-                _stateProvider.LoadState(out lastKnownTime, out duration, out lastUserState, out lastMessageShown);
-                // data corruption issue
-                if (lastKnownTime == DateTimeOffset.MinValue || lastKnownTime.UtcDateTime - duration >= _timeProvider.GetUtcNow())
-                {
-                    lastKnownTime = _timeProvider.GetUtcNow();
-                    duration = TimeSpan.Zero;
-                }
-                // if it has been more than 24 hours since the last reset, reset the duration
-                else if (lastKnownTime.UtcDateTime <= nextResetDate.AddDays(-1) || duration >= TimeSpan.FromDays(1))
-                {
-                    duration = TimeSpan.Zero;
-                    lastKnownTime = _timeProvider.GetUtcNow();
-                }
 
-                // this should have been called in CreateTimer
-                callbackTimer = _timeProvider.CreateTimer(UpdateInteractiveTime, this, TimeSpan.Zero, TimeSpan.FromSeconds(1));
+            started = true;
+            // this should have been called in CreateTimer
+            callbackTimer = _timeProvider.CreateTimer(UpdateInteractiveTime, this, TimeSpan.Zero, TimeSpan.FromSeconds(1));
 
-            }, cancellationToken);
+            return Task.CompletedTask;
         }
 
         public Task StopAsync(CancellationToken cancellationToken)
@@ -98,14 +99,22 @@ namespace ScreenTime
 
         private void DoUpdateTime()
         {
+            if (!started)
+                return; 
             UpdateIdleTime();
             var currentTime = _timeProvider.GetUtcNow();
             var timeSinceLast = currentTime - lastKnownTime;
 
+            if (nextResetDate == DateTimeOffset.MinValue)
+            {
+                nextResetDate = GetNextResetTime(_resetTime);
+                duration = TimeSpan.Zero;
+            }
+
             if (currentTime >= nextResetDate)
             {
                 var delta = currentTime - nextResetDate;
-                delta = currentState == ActivityState.Active ? delta.Add(TimeSpan.FromDays(delta.Days * -1)) : TimeSpan.FromMinutes(0);
+                delta = activityState == ActivityState.Active ? delta.Add(TimeSpan.FromDays(delta.Days * -1)) : TimeSpan.FromMinutes(0);
                 nextResetDate = GetNextResetTime(_resetTime);
                 duration = delta;
                 OnDayRollover?.Invoke(this, new MessageEventArgs(new UserMessage(
@@ -115,7 +124,7 @@ namespace ScreenTime
                     "none"
                     ) ));
             }
-            else if (currentState == ActivityState.Active)
+            else if (activityState == ActivityState.Active)
             {
                 duration += timeSinceLast;
             }
@@ -136,7 +145,7 @@ namespace ScreenTime
                 }
                 PostMessages(stateChanged);
                 // save the state
-                _stateProvider.SaveState(lastKnownTime, duration, lastUserState, lastMessageShown);
+                _stateProvider.SaveState(lastKnownTime, duration, lastUserState, lastMessageShown, activityState);
             }
 
         }
@@ -171,14 +180,14 @@ namespace ScreenTime
         public void EndSessionAsync()
         {
 
-            currentState = ActivityState.Inactive;
+            activityState = ActivityState.Inactive;
             DoUpdateTime();
             // todo - ensure time transitioned here
         }
 
         public void StartSessionAsync()
         {
-            currentState = ActivityState.Active;
+            activityState = ActivityState.Active;
             // todo - ensure time transitioned here
             DoUpdateTime();
         }
@@ -299,12 +308,12 @@ namespace ScreenTime
 
         private void EndSessionInternal()
         {
-            // currentState = ActivityState.Inactive;
+            // activityState = ActivityState.Inactive;
         }
 
         private void StartSessionInternal()
         {
-            // currentState = ActivityState.Active;
+            // activityState = ActivityState.Active;
         }
 
         public void Reset()

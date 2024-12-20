@@ -21,26 +21,31 @@ namespace ScreenTimeTest
                 Duration = TimeSpan.Parse(duration);
                 State = UserState.Okay;
                 TimeMessageLastShown = LastKnownDate.AddDays(-7);
+                ActivityState = ActivityState.Unknown;
             }
 
             public DateTimeOffset LastKnownDate { get; set; }
             public TimeSpan Duration { get; set;  }
             public UserState State { get; set; }
             public DateTimeOffset TimeMessageLastShown { get; set; }
+            public ActivityState ActivityState { get; set; }
 
-            public override void LoadState(out DateTimeOffset lastKnownTime, out TimeSpan duration, out UserState state, out DateTimeOffset timeMessageLastShown)
+            public override void LoadState(out DateTimeOffset lastKnownTime, out TimeSpan duration, out UserState state, out DateTimeOffset timeMessageLastShown, out ActivityState activityState)
             {
                 lastKnownTime = LastKnownDate;
                 duration = Duration;
                 state = State;
                 timeMessageLastShown = TimeMessageLastShown;
+                activityState = ActivityState.Unknown;
             }
-            public override void SaveState(DateTimeOffset lastKnownTime, TimeSpan duration, UserState state, DateTimeOffset timeMessageLastShown)
+            public override void SaveState(DateTimeOffset lastKnownTime, TimeSpan duration, UserState state, DateTimeOffset timeMessageLastShown, ActivityState activityState)
             {
                 LastKnownDate = lastKnownTime;
                 Duration = duration;
                 State = state;
                 TimeMessageLastShown = timeMessageLastShown;
+                ActivityState = activityState;
+
             }
         }
 
