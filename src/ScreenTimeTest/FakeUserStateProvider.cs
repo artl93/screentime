@@ -13,6 +13,7 @@ namespace ScreenTimeTest
                 Duration = TimeSpan.Zero;
                 State = UserState.Okay;
                 TimeMessageLastShown = timeProvider.GetUtcNow().AddDays(-7);
+                ActivityState = ActivityState.Inactive;
             }
 
             public FakeUserStateProvider(string lastKnownDate, string duration)
@@ -21,7 +22,7 @@ namespace ScreenTimeTest
                 Duration = TimeSpan.Parse(duration);
                 State = UserState.Okay;
                 TimeMessageLastShown = LastKnownDate.AddDays(-7);
-                ActivityState = ActivityState.Unknown;
+                ActivityState = ActivityState.Inactive;
             }
 
             public DateTimeOffset LastKnownDate { get; set; }
@@ -36,7 +37,7 @@ namespace ScreenTimeTest
                 duration = Duration;
                 state = State;
                 timeMessageLastShown = TimeMessageLastShown;
-                activityState = ActivityState.Unknown;
+                activityState = ActivityState;
             }
             public override void SaveState(DateTimeOffset lastKnownTime, TimeSpan duration, UserState state, DateTimeOffset timeMessageLastShown, ActivityState activityState)
             {

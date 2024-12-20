@@ -57,6 +57,13 @@ namespace ScreenTime
                 duration = TimeSpan.Zero;
                 lastKnownTime = _timeProvider.GetUtcNow();
             }
+            if (activityState != ActivityState.Active)
+            {
+                 // only count the time in between the last state and now if the last state was active
+                 // otherwise, throw it out.
+                 lastKnownTime = _timeProvider.GetUtcNow();
+            }
+            activityState = ActivityState.Active;
 
 
             started = true;

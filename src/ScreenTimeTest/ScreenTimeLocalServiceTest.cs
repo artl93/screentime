@@ -80,8 +80,8 @@ namespace ScreenTimeTest
             var mockUserConfiguration = new UserConfiguration(Guid.NewGuid(), "test", ResetTime: resetTime);
 
             using var service = new ScreenTimeLocalService(timeProvider, mockUserConfiguration, userStateProvider);
-            await service.StartAsync(CancellationToken.None);
             service.StartSessionAsync();
+            await service.StartAsync(CancellationToken.None);
             timeProvider.Advance(elapsed);
 
             var result = await service.GetInteractiveTimeAsync();
