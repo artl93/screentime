@@ -31,17 +31,3 @@ namespace ScreenTime
     }
 }
 
-
-/*
-
-Application.ApplicationExit += (s, e) =>
-{
-    client.EndSessionAsync();
-    icon.Visible = false;
-    icon.Dispose();
-    task.Dispose();
-};
-
-// make sure the main window loop runs
-Application.Run(new HiddenForm(task));
-*/
