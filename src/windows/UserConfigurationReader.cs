@@ -4,7 +4,7 @@ namespace ScreenTime
 {
     public class UserConfigurationReader
     {
-        const string _baseKey = @"HKEY_CURRENT_USER\Software\ScreenTime";
+        const string _baseKey = @"HKEY_CURRENT_USER\Software\ScreenTime\Config";
         const string _defaultResetTime = "06:00:00";
 
         public UserConfiguration GetConfiguration()
@@ -18,6 +18,15 @@ namespace ScreenTime
 
             return new UserConfiguration(Guid.NewGuid(), Environment.UserName, dailyLimit, warningTime, warningInterval, graceMinutes, dailyResetString);
 
+        }
+
+        public void SetConfiguration(UserConfiguration configuration)
+        {
+            Registry.SetValue(_baseKey, "DailyLimit", configuration.DailyLimitMinutes);
+            Registry.SetValue(_baseKey, "WarningTime", configuration.WarningTimeMinutes);
+            Registry.SetValue(_baseKey, "WarningInterval", configuration.WarningIntervalSeconds);
+            Registry.SetValue(_baseKey, "GraceMinutes", configuration.GraceMinutes);
+            Registry.SetValue(_baseKey, "DailyResetTime", configuration.ResetTime);
         }
 
         private static int GetRegistryIntValue(string key, string valueName, int defaultValue)
@@ -40,5 +49,6 @@ namespace ScreenTime
             }
             return defaultValue;
         }
+
     }
 }
