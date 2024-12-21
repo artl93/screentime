@@ -58,7 +58,8 @@ internal class HiddenForm : Form
             UserState.Okay => SystemIcons.Information,
             UserState.Warn => SystemIcons.Warning,
             UserState.Error => SystemIcons.Error,
-            UserState.Lock => SystemIcons.Shield,
+            UserState.Lock => SystemIcons.GetStockIcon(StockIconId.Lock),
+            UserState.Paused => SystemIcons.GetStockIcon(StockIconId.World),
             _ => SystemIcons.Application
         };
     }

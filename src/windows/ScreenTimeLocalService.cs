@@ -22,6 +22,7 @@ namespace ScreenTime
         private UserState lastUserState;
         private DateTimeOffset lastMessageShown;
         bool started = false;
+        private bool isIdle;
         private readonly ILogger? logger = logger;
 
         public event EventHandler<MessageEventArgs>? OnDayRollover;
@@ -134,7 +135,7 @@ namespace ScreenTime
             lastKnownTime = currentTime;
             OnTimeUpdate?.Invoke(this, new UserStatusEventArgs(
                 GetUserStatus(duration, TimeSpan.FromMinutes(configuration.DailyLimitMinutes), TimeSpan.FromMinutes(configuration.WarningTimeMinutes), 
-                TimeSpan.FromMinutes(configuration.GraceMinutes)), 
+                TimeSpan.FromMinutes(configuration.GraceMinutes), isIdle), 
                 currentTime, duration));
             lock (this)
             {
@@ -158,7 +159,7 @@ namespace ScreenTime
             var dailyTimeLimit = TimeSpan.FromMinutes(configuration.DailyLimitMinutes);
             var warningTime = TimeSpan.FromMinutes(configuration.WarningTimeMinutes);
             var graceTime = TimeSpan.FromMinutes(configuration.GraceMinutes);
-            var status = GetUserStatus(interactiveTime, dailyTimeLimit, warningTime, graceTime);
+            var status = GetUserStatus(interactiveTime, dailyTimeLimit, warningTime, graceTime, isIdle);
             OnUserStatusChanged?.Invoke(this, new UserStatusEventArgs(status, _timeProvider.GetUtcNow(), interactiveTime));
         }
 
@@ -171,12 +172,11 @@ namespace ScreenTime
             {
                 return;
             }
+            if ((lastUserState == UserState.Okay) && (_timeProvider.GetUtcNow() - lastMessageShown < TimeSpan.FromMinutes(15)))
+                return;
             var message = GetUserMessage();
-            if (message != null)
-            {
-                OnMessageUpdate?.Invoke(this, new MessageEventArgs(message));
-                lastMessageShown = _timeProvider.GetUtcNow();
-            }
+            OnMessageUpdate?.Invoke(this, new MessageEventArgs(message));
+            lastMessageShown = _timeProvider.GetUtcNow();
         }
 
         public void EndSessionAsync(string reason)
@@ -205,7 +205,7 @@ namespace ScreenTime
             var warningTime = TimeSpan.FromMinutes(configuration.WarningTimeMinutes);
             var graceTime = TimeSpan.FromMinutes(configuration.GraceMinutes);
 
-            return Task.FromResult<UserStatus?>(GetUserStatus(interactiveTime, dailyTimeLimit, warningTime, graceTime));
+            return Task.FromResult<UserStatus?>(GetUserStatus(interactiveTime, dailyTimeLimit, warningTime, graceTime, isIdle));
         }
 
         private UserState GetUserState()
@@ -218,14 +218,18 @@ namespace ScreenTime
             var dailyTimeLimit = TimeSpan.FromMinutes(configuration.DailyLimitMinutes);
             var warningTime = TimeSpan.FromMinutes(configuration.WarningTimeMinutes);
             var graceTime = TimeSpan.FromMinutes(configuration.GraceMinutes);
-            return GetUserState(interactiveTime, dailyTimeLimit, warningTime, graceTime);
+            return GetUserState(interactiveTime, dailyTimeLimit, warningTime, graceTime, isIdle);
         }
 
-        private static UserState GetUserState(TimeSpan interactiveTime, TimeSpan dailyTimeLimit, TimeSpan warningTime, TimeSpan gracePeriod)
+        private static UserState GetUserState(TimeSpan interactiveTime, TimeSpan dailyTimeLimit, TimeSpan warningTime, TimeSpan gracePeriod, bool isIdle)
         {
             if (interactiveTime >= dailyTimeLimit + gracePeriod)
             {
                 return UserState.Lock;
+            }
+            else if (isIdle)
+            {
+                return UserState.Paused;
             }
             else if (interactiveTime >= dailyTimeLimit)
             {
@@ -241,15 +245,16 @@ namespace ScreenTime
             }
         }
 
-        private static UserStatus GetUserStatus(TimeSpan interactiveTime, TimeSpan dailyTimeLimit, TimeSpan warningTime, TimeSpan gracePeriod)
+        private static UserStatus GetUserStatus(TimeSpan interactiveTime, TimeSpan dailyTimeLimit, TimeSpan warningTime, TimeSpan gracePeriod, bool isIdle)
         {
-            var state = GetUserState(interactiveTime, dailyTimeLimit, warningTime, gracePeriod);
+            var state = GetUserState(interactiveTime, dailyTimeLimit, warningTime, gracePeriod, isIdle);
             return state switch
             {
                 UserState.Lock => new UserStatus(interactiveTime, "🛡️", "logout", UserState.Lock, dailyTimeLimit),
                 UserState.Error => new UserStatus(interactiveTime, "🛑", "logout", UserState.Error, dailyTimeLimit),
                 UserState.Warn => new UserStatus(interactiveTime, "⚠️", "none", UserState.Warn, dailyTimeLimit),
                 UserState.Okay => new UserStatus(interactiveTime, "⏳", "none", UserState.Okay, dailyTimeLimit),
+                UserState.Paused => new UserStatus(interactiveTime, "💤", "none", UserState.Paused, dailyTimeLimit),
                 _ => new UserStatus(interactiveTime, "❌", "none", UserState.Invalid, dailyTimeLimit)
             };
         }
@@ -298,28 +303,32 @@ namespace ScreenTime
             return Task.FromResult<UserConfiguration?>(configuration);
         }
 
+        TimeSpan idleTimeLast = TimeSpan.Zero;
+
         void UpdateIdleTime()
         {
             var idleTime = IdleTimeDetector.GetIdleTime();
             if (idleTime.TotalMinutes >= 5) // Notify if idle for 5 minutes
             {
-                EndSessionInternal();
-                Utilities.LogToConsole("The system has been idle for 5 minutes.");
+                if (!isIdle)
+                {
+                    lock (this)
+                    {
+                        isIdle = true;
+                        // this.OnUserStatusChanged?.Invoke(this, new UserStatusEventArgs(new UserStatus(duration, "💤", "none", UserState.Paused, TimeSpan.FromMinutes(0)), _timeProvider.GetUtcNow(), duration));
+                        logger?.LogInformation("User is idle for {0} minutes", idleTime.TotalMinutes);
+                        activityState = ActivityState.Inactive;
+                    }
+                }
             }
-            else
+            else if (isIdle)
             {
-                StartSessionInternal();
+                logger?.LogInformation($"User is no longer idle {idleTimeLast}");
+                isIdle = false;
+                activityState = ActivityState.Active;
             }
-        }
+            idleTimeLast = idleTime;
 
-        private void EndSessionInternal()
-        {
-            // activityState = ActivityState.Inactive;
-        }
-
-        private void StartSessionInternal()
-        {
-            // activityState = ActivityState.Active;
         }
 
         public void Reset()
