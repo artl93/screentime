@@ -12,6 +12,7 @@ namespace ScreenTime
         {
             Task.Delay(1000).Wait();
             // LockWorkStation();
+            // TODO: reenable locking
         }
 
         public void LogOut()
