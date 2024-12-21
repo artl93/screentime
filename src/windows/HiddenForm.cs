@@ -18,7 +18,7 @@ internal class HiddenForm : Form
             ContextMenuStrip = new ContextMenuStrip()
         };
         icon.ContextMenuStrip.Items.Add("Reset", null, (s, e) => { client.Reset(); });
-        icon.ContextMenuStrip.Items.Add("Exit", null, (s, e) => { icon.Visible = false; Environment.Exit(0); });
+        icon.ContextMenuStrip.Items.Add("Exit", null, (s, e) => { icon.Visible = false; Application.Exit(); });
         icon.Visible = true;
         icon.Text = "Connecting...";
         client.OnMessageUpdate += (s, e) =>
