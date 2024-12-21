@@ -23,12 +23,15 @@ static class Program
         client.StartSessionAsync("start program");
         host.Start();
 
-
+        Application.ApplicationExit += (s, e) =>
+        {
+            client.EndSessionAsync("end program");
+            host.StopAsync().Wait();
+        };
         Application.Run(form);
-        client.EndSessionAsync("end program");
 
-        host.StopAsync().Wait();
      }
+
     public static IServiceProvider? ServiceProvider { get; private set; }
 
     static IHostBuilder CreateHostBuilder(string[] args)
@@ -36,7 +39,9 @@ static class Program
         var builder = Host.CreateDefaultBuilder(args)
             .ConfigureServices((hostContext, services) =>
             {
-                services.AddHostedService((sp) => sp.GetRequiredService<IScreenTimeStateClient>());
+                services.AddHostedService((sp) => sp.GetRequiredService<IScreenTimeStateClient>())
+                .ActivateSingleton<LockProvider>()
+                .ActivateSingleton<SystemEventHandlers>();
                 services.AddSingleton(serviceProvider =>
                 {
                     // create the server

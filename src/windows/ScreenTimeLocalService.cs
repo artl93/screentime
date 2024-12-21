@@ -181,19 +181,21 @@ namespace ScreenTime
 
         public void EndSessionAsync(string reason)
         {
-            logger?.LogInformation($"End session called ({reason})");
+            logger?.LogInformation($"End session called ({reason}) - {duration}");
             activityState = ActivityState.Inactive;
             DoUpdateTime();
+            PostStatusChanges();
             // todo - ensure time transitioned here
         }
 
-       
+
         public void StartSessionAsync(string reason)
         {
-            logger?.LogInformation($"Start session called. ({reason})");
+            logger?.LogInformation($"Start session called. ({reason}) - {duration}");
             activityState = ActivityState.Active;
             // todo - ensure time transitioned here
             DoUpdateTime();
+            PostStatusChanges();
         }
 
         public Task<UserStatus?> GetInteractiveTimeAsync()
