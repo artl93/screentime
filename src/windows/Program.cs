@@ -40,8 +40,8 @@ static class Program
             .ConfigureServices((hostContext, services) =>
             {
                 services.AddHostedService((sp) => sp.GetRequiredService<IScreenTimeStateClient>())
-                .ActivateSingleton<LockProvider>()
-                .ActivateSingleton<SystemEventHandlers>();
+                    .ActivateSingleton<LockProvider>()
+                    .ActivateSingleton<SystemEventHandlers>();
                 services.AddSingleton(serviceProvider =>
                 {
                     // create the server
@@ -83,10 +83,16 @@ static class Program
                     ));
     });
 
-
-        // if not set, write to the registry to run this application on on startup
-        // if (Registry.GetValue(@"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Run", "ScreenTime", null) == null)
-        //    Registry.SetValue(@"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Run", "ScreenTime", Environment.ProcessPath ?? String.Empty);
+        if (args.Contains("install"))
+        {
+            // install the application to run on startup
+            Registry.SetValue(@"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Run", "ScreenTime", Environment.ProcessPath ?? String.Empty);
+        }
+        if (args.Contains("uninstall"))
+        {
+            // uninstall the application from running on startup
+            Registry.SetValue(@"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Run", "ScreenTime", String.Empty);
+        }
 
         return builder;
     }
