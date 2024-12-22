@@ -61,13 +61,17 @@ namespace ScreenTime
             started = true;
             // this should have been called in CreateTimer
             callbackTimer = _timeProvider.CreateTimer(UpdateInteractiveTime, this, TimeSpan.Zero, TimeSpan.FromSeconds(1));
+            var heartbeatTimer = _timeProvider.CreateTimer(LogHeartbeat, this, TimeSpan.FromMinutes(.1), TimeSpan.FromMinutes(1)); 
 
             return Task.CompletedTask;
         }
 
+        private void LogHeartbeat(object? state) => logger?.LogInformation("Heartbeat - Duration: {0}", duration);
+
         public Task StopAsync(CancellationToken cancellationToken)
         {
             logger?.LogInformation("Stopping ScreenTimeLocalService");
+            logger?.LogInformation("Final duration: {0}", duration);
             return Task.CompletedTask;
         }
 
@@ -181,7 +185,7 @@ namespace ScreenTime
 
         public void EndSessionAsync(string reason)
         {
-            logger?.LogInformation($"End session called ({reason}) - {duration}");
+            logger?.LogInformation("End session called ({0}) - {1}", reason, duration);
             activityState = ActivityState.Inactive;
             DoUpdateTime();
             PostStatusChanges();
@@ -191,7 +195,7 @@ namespace ScreenTime
 
         public void StartSessionAsync(string reason)
         {
-            logger?.LogInformation($"Start session called. ({reason}) - {duration}");
+            logger?.LogInformation("Start session called. ({0}) - {1}", reason, duration);
             activityState = ActivityState.Active;
             // todo - ensure time transitioned here
             DoUpdateTime();
@@ -271,7 +275,7 @@ namespace ScreenTime
             var warningTime = TimeSpan.FromMinutes(configuration.WarningTimeMinutes);
             var graceTime = TimeSpan.FromMinutes(configuration.GraceMinutes);
 
-            var interactiveTimeString = TimeSpanHumanizeExtensions.Humanize(interactiveTime);
+            var interactiveTimeString = TimeSpanHumanizeExtensions.Humanize(interactiveTime, precision: 2, maxUnit: Humanizer.Localisation.TimeUnit.Hour, minUnit: Humanizer.Localisation.TimeUnit.Second);
             var allowedTimeString = TimeSpanHumanizeExtensions.Humanize(dailyTimeLimit);
 
             // when time is up, log them off
@@ -290,7 +294,7 @@ namespace ScreenTime
             {
                 if ((dailyTimeLimit - interactiveTime).Minutes % 1 == 0)
                 {
-                    var remainingTimeString = TimeSpanHumanizeExtensions.Humanize(dailyTimeLimit - interactiveTime);
+                    var remainingTimeString = TimeSpanHumanizeExtensions.Humanize(dailyTimeLimit - interactiveTime, precision: 2, minUnit: Humanizer.Localisation.TimeUnit.Second, maxUnit: Humanizer.Localisation.TimeUnit.Hour);
                     return new UserMessage("Time Warning", $"You have {remainingTimeString} left out of {allowedTimeString}", "⏳", "warn");
                 }
             }
@@ -371,7 +375,7 @@ namespace ScreenTime
 
         public void RequestExtension(int minutes)
         {
-
+            logger?.LogWarning($"Requesting extension for {minutes} minutes.");
             MessageBox.Show("Not yet implemented. Go play outside.");
         }
     }

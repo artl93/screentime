@@ -4,6 +4,7 @@ using Microsoft.Win32;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Application = System.Windows.Forms.Application;
+using NetEscapades.Extensions.Logging.RollingFile;
 
 
 static class Program
@@ -61,7 +62,14 @@ static class Program
                 {
                     builder.AddConsole();
                     builder.AddDebug();
-                    builder.AddFile("screentime.");
+                    builder.AddFile(options =>
+                    {
+                        options.FileName = "screentime-"; // The log file prefixes
+                        options.LogDirectory = Path.GetTempPath(); // The directory to write the logs
+                        options.FileSizeLimit = 20 * 1024 * 1024; // The maximum log file size (20MB here)
+                        options.FilesPerPeriodicityLimit = 200; // When maximum file size is reached, create a new file, up to a limit of 200 files per periodicity
+                        options.Extension = "log"; // The log file extension
+                    });
                 });
                 services.AddSingleton((sp) => new SystemEventHandlers(sp.GetRequiredService<IScreenTimeStateClient>()));
                 services.AddSingleton(TimeProvider.System);
@@ -92,6 +100,16 @@ static class Program
         {
             // uninstall the application from running on startup
             Registry.SetValue(@"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Run", "ScreenTime", String.Empty);
+        }
+        if (args.Contains("install_global"))
+        {
+            // install the application to run on startup
+            Registry.SetValue(@"HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Run", "ScreenTime", Environment.ProcessPath ?? String.Empty);
+        }
+        if (args.Contains("uninstall_global"))
+        {
+            // uninstall the application from running on startup
+            Registry.SetValue(@"HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Run", "ScreenTime", String.Empty);
         }
 
         return builder;
