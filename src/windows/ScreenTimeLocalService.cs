@@ -6,13 +6,20 @@ using System.Runtime.CompilerServices;
 
 namespace ScreenTime
 {
-    public partial class ScreenTimeLocalService(TimeProvider timeProvider, UserConfiguration userConfiguration, UserStateProvider stateProvider, ILogger? logger) : IScreenTimeStateClient, IDisposable, IHostedService
+
+    public partial class ScreenTimeLocalService(
+        TimeProvider timeProvider, 
+        IUserConfigurationProvider userConfigurationProvider, 
+        UserStateProvider stateProvider, 
+        ILogger? logger) 
+        : IScreenTimeStateClient, IDisposable, IHostedService
     {
+        private IUserConfigurationProvider userConfigurationProvider = userConfigurationProvider;
         private DateTimeOffset lastKnownTime;
         private DateTimeOffset nextResetDate;
         private TimeSpan duration;
         private readonly TimeProvider _timeProvider = timeProvider;
-        public UserConfiguration configuration = userConfiguration;
+        public UserConfiguration? configuration;
         private readonly UserStateProvider _stateProvider = stateProvider;
         private TimeSpan _resetTime = TimeSpan.Zero;
         private ITimer? callbackTimer;
@@ -30,8 +37,10 @@ namespace ScreenTime
         public event EventHandler<MessageEventArgs>? OnMessageUpdate;
         public event EventHandler<ComputerStateEventArgs>? EventHandlerEnsureComputerState;
 
-        public Task StartAsync(CancellationToken cancellationToken)
+        public async Task StartAsync(CancellationToken cancellationToken)
         {
+            userConfigurationProvider.OnConfigurationChanged += (s, e) => configuration = e;
+            configuration = await userConfigurationProvider.GetUserConfigurationForDayAsync();
             logger?.LogInformation("Starting ScreenTimeLocalService");
             _resetTime = TimeSpan.Parse($"{configuration.ResetTime}");
             nextResetDate = GetNextResetTime(_resetTime);
@@ -63,7 +72,6 @@ namespace ScreenTime
             callbackTimer = _timeProvider.CreateTimer(UpdateInteractiveTime, this, TimeSpan.Zero, TimeSpan.FromSeconds(1));
             var heartbeatTimer = _timeProvider.CreateTimer(LogHeartbeat, this, TimeSpan.FromMinutes(.1), TimeSpan.FromMinutes(1)); 
 
-            return Task.CompletedTask;
         }
 
         private void LogHeartbeat(object? state) => logger?.LogInformation("Heartbeat - Duration: {0}", duration);
@@ -183,23 +191,29 @@ namespace ScreenTime
             lastMessageShown = _timeProvider.GetUtcNow();
         }
 
-        public void EndSessionAsync(string reason)
+        public Task EndSessionAsync(string reason)
         {
-            logger?.LogInformation("End session called ({0}) - {1}", reason, duration);
-            activityState = ActivityState.Inactive;
-            DoUpdateTime();
-            PostStatusChanges();
-            // todo - ensure time transitioned here
+            return Task.Run(() =>
+            {
+                logger?.LogInformation("End session called ({0}) - {1}", reason, duration);
+                activityState = ActivityState.Inactive;
+                DoUpdateTime();
+                PostStatusChanges();
+                // todo - ensure time transitioned here
+            });
         }
 
 
-        public void StartSessionAsync(string reason)
+        public Task StartSessionAsync(string reason)
         {
-            logger?.LogInformation("Start session called. ({0}) - {1}", reason, duration);
-            activityState = ActivityState.Active;
-            // todo - ensure time transitioned here
-            DoUpdateTime();
-            PostStatusChanges();
+            return Task.Run(() =>
+            {
+                logger?.LogInformation("Start session called. ({0}) - {1}", reason, duration);
+                activityState = ActivityState.Active;
+                // todo - ensure time transitioned here
+                DoUpdateTime();
+                PostStatusChanges();            });
+
         }
 
         public Task<UserStatus?> GetInteractiveTimeAsync()
@@ -335,12 +349,15 @@ namespace ScreenTime
 
         }
 
-        public void Reset()
+        public Task ResetAsync()
         {
-            logger?.LogCritical("User time was reset!");
-            lastKnownTime = _timeProvider.GetUtcNow();
-            duration = TimeSpan.Zero;
-            nextResetDate = GetNextResetTime(_resetTime);
+            return Task.Run(() =>
+            {
+                logger?.LogCritical("User time was reset!");
+                lastKnownTime = _timeProvider.GetUtcNow();
+                duration = TimeSpan.Zero;
+                nextResetDate = GetNextResetTime(_resetTime);
+            });
         }
 
         protected virtual void Dispose(bool disposing)
@@ -373,10 +390,13 @@ namespace ScreenTime
             GC.SuppressFinalize(this);
         }
 
-        public void RequestExtension(int minutes)
+        public Task RequestExtensionAsync(int minutes)
         {
-            logger?.LogWarning($"Requesting extension for {minutes} minutes.");
-            MessageBox.Show("Not yet implemented. Go play outside.");
+            return Task.Run(() =>
+            {
+                logger?.LogWarning($"Requesting extension for {minutes} minutes.");
+                MessageBox.Show("Not yet implemented. Go play outside.");
+            });
         }
     }
 }

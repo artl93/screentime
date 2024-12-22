@@ -151,5 +151,25 @@ namespace ScreenTime
         {
             throw new NotImplementedException();
         }
+
+        Task IScreenTimeStateClient.StartSessionAsync(string reason)
+        {
+            throw new NotImplementedException();
+        }
+
+        Task IScreenTimeStateClient.EndSessionAsync(string reason)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task RequestExtensionAsync(int minutes)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task ResetAsync()
+        {
+            throw new NotImplementedException();
+        }
     }
 }

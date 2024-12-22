@@ -2,7 +2,7 @@
 
 namespace ScreenTime
 {
-    public class UserConfigurationReader
+    public class UserConfigurationReader : IUserConfigurationReader
     {
         const string _baseKey = @"HKEY_CURRENT_USER\Software\ScreenTime\Config";
         const string _defaultResetTime = "06:00:00";

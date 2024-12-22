@@ -11,12 +11,12 @@ namespace ScreenTime
         event EventHandler<MessageEventArgs>? OnMessageUpdate;
         event EventHandler<ComputerStateEventArgs>? EventHandlerEnsureComputerState;
 
-        public void EndSessionAsync(string reason);
+        public Task StartSessionAsync(string reason);
+        public Task EndSessionAsync(string reason);
         public Task<UserStatus?> GetInteractiveTimeAsync();
         public Task<UserMessage?> GetMessage();
         public Task<UserConfiguration?> GetUserConfigurationAsync();
-        void RequestExtension(int minutes);
-        void Reset();
-        public void StartSessionAsync(string reason);
+        public Task RequestExtensionAsync(int minutes);
+        public Task ResetAsync();
     }
 }

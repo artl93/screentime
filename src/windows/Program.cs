@@ -21,12 +21,12 @@ static class Program
         // ordering is important here to hook the event handlers
         var form = ServiceProvider.GetRequiredService<HiddenForm>();
         var client = ServiceProvider.GetRequiredService<IScreenTimeStateClient>();
-        client.StartSessionAsync("start program");
+        client.StartSessionAsync("start program").Wait();
         host.Start();
 
         Application.ApplicationExit += (s, e) =>
         {
-            client.EndSessionAsync("end program");
+            client.EndSessionAsync("end program").Wait();
             host.StopAsync().Wait();
         };
         Application.Run(form);
@@ -52,12 +52,13 @@ static class Program
                         "develop" => new ScreenTimeServiceClient(serviceProvider.GetRequiredService<HttpClient>()).SetBaseAddress("https://localhost:7186"),
                         "live" => new ScreenTimeServiceClient(serviceProvider.GetRequiredService<HttpClient>()).SetBaseAddress("https://screentime.azurewebsites.net"),
                         _ => new ScreenTimeLocalService(serviceProvider.GetRequiredService<TimeProvider>(),
-                            serviceProvider.GetRequiredService<UserConfigurationReader>().GetConfiguration(),
+                            serviceProvider.GetRequiredService<IUserConfigurationProvider>(),
                             serviceProvider.GetRequiredService<UserStateProvider>(), 
                             serviceProvider.GetRequiredService<ILogger<ScreenTimeLocalService>>())
                     };
                     return client;
                 });
+                services.AddSingleton<IUserConfigurationProvider, RegistryConfigurationProvider>();
                 services.AddLogging(builder =>
                 {
                     builder.AddConsole();

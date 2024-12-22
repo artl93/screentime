@@ -20,9 +20,9 @@ internal class HiddenForm : Form
             ContextMenuStrip = new ContextMenuStrip()
         };
         // icon.ContextMenuStrip.Items.Add("Reset", null, (s, e) => { client.Reset(); });
-        icon.ContextMenuStrip.Items.Add("Request 5 minute extension", null, (s, e) => { client.RequestExtension(5); });
-        icon.ContextMenuStrip.Items.Add("Request 15 minute extension", null, (s, e) => { client.RequestExtension(15); });
-        icon.ContextMenuStrip.Items.Add("Request 60 minute extension", null, (s, e) => { client.RequestExtension(60); });
+        icon.ContextMenuStrip.Items.Add("Request 5 minute extension", null, async (s, e) => { await client.RequestExtensionAsync(5); });
+        icon.ContextMenuStrip.Items.Add("Request 15 minute extension", null, async (s, e) => { await client.RequestExtensionAsync(15); });
+        icon.ContextMenuStrip.Items.Add("Request 60 minute extension", null, async (s, e) => { await client.RequestExtensionAsync(60); });
         icon.ContextMenuStrip.Items.Add("Exit", null, (s, e) => 
         {
             logger?.LogCritical($"Silent mode enabled by: {Environment.UserName} because they hit \"Exit\"");

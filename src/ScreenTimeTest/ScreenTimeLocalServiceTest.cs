@@ -78,10 +78,13 @@ namespace ScreenTimeTest
             var userStateProvider = new FakeUserStateProvider(lastKnownDate, lastDuration);
 
             var mockUserConfiguration = new UserConfiguration(Guid.NewGuid(), "test", ResetTime: resetTime);
+            Moq.Mock<IUserConfigurationProvider> mockUserConfigurationProvider = new Moq.Mock<IUserConfigurationProvider>();
+            mockUserConfigurationProvider.Setup(m => m.GetUserConfigurationForDayAsync()).ReturnsAsync(mockUserConfiguration);
 
-            using var service = new ScreenTimeLocalService(timeProvider, mockUserConfiguration, userStateProvider, null);
-            service.StartSessionAsync("test");
+
+            using var service = new ScreenTimeLocalService(timeProvider, mockUserConfigurationProvider.Object, userStateProvider, null);
             await service.StartAsync(CancellationToken.None);
+            service.StartSessionAsync("test");
             timeProvider.Advance(elapsed);
 
             var result = await service.GetInteractiveTimeAsync();
@@ -144,8 +147,10 @@ namespace ScreenTimeTest
             var userStateProvider = new FakeUserStateProvider(timeProvider);
 
             var mockUserConfiguration = new UserConfiguration(Guid.NewGuid(), "test");
+            Moq.Mock<IUserConfigurationProvider> mockUserConfigurationProvider = new Moq.Mock<IUserConfigurationProvider>();
+            mockUserConfigurationProvider.Setup(m => m.GetUserConfigurationForDayAsync()).ReturnsAsync(mockUserConfiguration);
 
-            using var service = new ScreenTimeLocalService(timeProvider, mockUserConfiguration, userStateProvider, null);
+            using var service = new ScreenTimeLocalService(timeProvider, mockUserConfigurationProvider.Object, userStateProvider, null);
             await service.StartAsync(CancellationToken.None);
 
             var expectedIntermediateDuration = TimeSpan.FromMinutes(0);
@@ -158,10 +163,10 @@ namespace ScreenTimeTest
                 var duration = end - start;
 
                 timeProvider.SetUtcNow(start.UtcDateTime);
-                service.StartSessionAsync("test");
+                await service.StartSessionAsync("test");
 
                 timeProvider.SetUtcNow(end.UtcDateTime);
-                service.EndSessionAsync("test");
+                await service.EndSessionAsync("test");
                 await service.StopAsync(CancellationToken.None);
 
                 expectedIntermediateDuration += duration;
@@ -191,13 +196,16 @@ namespace ScreenTimeTest
 
             var userStateProvider = new FakeUserStateProvider(start.ToString(), "00:00:00");
             var mockUserConfiguration = new UserConfiguration(Guid.NewGuid(), "test");
+            Moq.Mock<IUserConfigurationProvider> mockUserConfigurationProvider = new Moq.Mock<IUserConfigurationProvider>();
+            mockUserConfigurationProvider.Setup(m => m.GetUserConfigurationForDayAsync()).ReturnsAsync(mockUserConfiguration);
 
-            using var service = new ScreenTimeLocalService(timeProvider, mockUserConfiguration, userStateProvider, null);
+
+            using var service = new ScreenTimeLocalService(timeProvider, mockUserConfigurationProvider.Object, userStateProvider, null);
             var eventTriggered = false;
             service.OnDayRollover += (sender, args) => eventTriggered = true;
 
             await service.StartAsync(CancellationToken.None);
-            service.StartSessionAsync("test");
+            await service.StartSessionAsync("test");
             timeProvider.Advance(TimeSpan.FromDays(1));
             await service.StopAsync(CancellationToken.None);
 
@@ -212,11 +220,14 @@ namespace ScreenTimeTest
             timeProvider.SetLocalTimeZone(TimeProvider.System.LocalTimeZone);
             var userStateProvider = new FakeUserStateProvider(start.ToString(), "00:00:00");
             var mockUserConfiguration = new UserConfiguration(Guid.NewGuid(), "test");
-            using var service = new ScreenTimeLocalService(timeProvider, mockUserConfiguration, userStateProvider, null);
+            Moq.Mock<IUserConfigurationProvider> mockUserConfigurationProvider = new Moq.Mock<IUserConfigurationProvider>();
+            mockUserConfigurationProvider.Setup(m => m.GetUserConfigurationForDayAsync()).ReturnsAsync(mockUserConfiguration);
+
+            using var service = new ScreenTimeLocalService(timeProvider, mockUserConfigurationProvider.Object, userStateProvider, null);
             var eventTriggered = false;
             service.OnTimeUpdate += (sender, args) => eventTriggered = true;
             await service.StartAsync(CancellationToken.None);
-            service.StartSessionAsync("test");
+            await service.StartSessionAsync("test");
             timeProvider.Advance(TimeSpan.FromMinutes(1));
             await service.StopAsync(CancellationToken.None);
             Assert.True(eventTriggered);
@@ -230,11 +241,14 @@ namespace ScreenTimeTest
             timeProvider.SetLocalTimeZone(TimeProvider.System.LocalTimeZone);
             var userStateProvider = new FakeUserStateProvider(start.ToString(), "00:00:00");
             var mockUserConfiguration = new UserConfiguration(Guid.NewGuid(), "test");
-            using var service = new ScreenTimeLocalService(timeProvider, mockUserConfiguration, userStateProvider, null);
+            Moq.Mock<IUserConfigurationProvider> mockUserConfigurationProvider = new Moq.Mock<IUserConfigurationProvider>();
+            mockUserConfigurationProvider.Setup(m => m.GetUserConfigurationForDayAsync()).ReturnsAsync(mockUserConfiguration);
+            
+            using var service = new ScreenTimeLocalService(timeProvider, mockUserConfigurationProvider.Object, userStateProvider, null);
             var eventTriggered = false;
             service.OnUserStatusChanged += (sender, args) => eventTriggered = true;
             await service.StartAsync(CancellationToken.None);
-            service.StartSessionAsync("test");
+            await service.StartSessionAsync("test");
             timeProvider.Advance(TimeSpan.FromHours(2));
             await service.StopAsync(CancellationToken.None);
             Assert.True(eventTriggered);
@@ -248,11 +262,14 @@ namespace ScreenTimeTest
             timeProvider.SetLocalTimeZone(TimeProvider.System.LocalTimeZone);
             var userStateProvider = new FakeUserStateProvider(start.ToString(), "00:00:00");
             var mockUserConfiguration = new UserConfiguration(Guid.NewGuid(), "test");
-            using var service = new ScreenTimeLocalService(timeProvider, mockUserConfiguration, userStateProvider, null);
+            Moq.Mock<IUserConfigurationProvider> mockUserConfigurationProvider = new Moq.Mock<IUserConfigurationProvider>();
+            mockUserConfigurationProvider.Setup(m => m.GetUserConfigurationForDayAsync()).ReturnsAsync(mockUserConfiguration);
+
+            using var service = new ScreenTimeLocalService(timeProvider, mockUserConfigurationProvider.Object, userStateProvider, null);
             var eventTriggered = false;
             service.OnMessageUpdate += (sender, args) => eventTriggered = true;
             await service.StartAsync(CancellationToken.None);
-            service.StartSessionAsync("test");
+            await service.StartSessionAsync("test");
             timeProvider.Advance(TimeSpan.FromMinutes(1));
             await service.StopAsync(CancellationToken.None);
             Assert.True(eventTriggered);
