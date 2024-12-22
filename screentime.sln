@@ -4,6 +4,9 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 VisualStudioVersion = 17.5.002.0
 MinimumVisualStudioVersion = 10.0.40219.1
 
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ScreenTimeTest", "src\ScreenTimeTest\ScreenTimeTest.csproj", "{D4E8F8A2-5B2A-4D3A-8E6F-9A1C2B3D4E5F}"
+EndProject
+
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ScreenTime", "src\windows\ScreenTime.csproj", "{88C2F466-003F-475A-BDC2-47D009727F62}"
 EndProject
 Global

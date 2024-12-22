@@ -34,6 +34,7 @@ namespace ScreenTime
         public event EventHandler<UserStatusEventArgs>? OnTimeUpdate;
         public event EventHandler<UserStatusEventArgs>? OnUserStatusChanged;
         public event EventHandler<MessageEventArgs>? OnMessageUpdate;
+        public event EventHandler<ComputerStateEventArgs>? EventHandlerEnsureComputerState;
 
         public async void StartSessionAsync()
         {
@@ -142,6 +143,11 @@ namespace ScreenTime
         }
 
         public void StartSessionAsync(string reason)
+        {
+            throw new NotImplementedException();
+        }
+
+        public void RequestExtension(int minutes)
         {
             throw new NotImplementedException();
         }

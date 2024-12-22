@@ -11,14 +11,13 @@ namespace ScreenTime
         private DateTimeOffset lastKnownTime;
         private DateTimeOffset nextResetDate;
         private TimeSpan duration;
-        private TimeProvider _timeProvider = timeProvider;
+        private readonly TimeProvider _timeProvider = timeProvider;
         public UserConfiguration configuration = userConfiguration;
-        private UserStateProvider _stateProvider = stateProvider;
+        private readonly UserStateProvider _stateProvider = stateProvider;
         private TimeSpan _resetTime = TimeSpan.Zero;
         private ITimer? callbackTimer;
         private bool disposedValue = false;
         private ActivityState activityState = ActivityState.Unknown;
-        private bool disposedValue1;
         private UserState lastUserState;
         private DateTimeOffset lastMessageShown;
         bool started = false;
@@ -29,7 +28,7 @@ namespace ScreenTime
         public event EventHandler<UserStatusEventArgs>? OnTimeUpdate;
         public event EventHandler<UserStatusEventArgs>? OnUserStatusChanged;
         public event EventHandler<MessageEventArgs>? OnMessageUpdate;
-
+        public event EventHandler<ComputerStateEventArgs>? EventHandlerEnsureComputerState;
 
         public Task StartAsync(CancellationToken cancellationToken)
         {
@@ -150,6 +149,7 @@ namespace ScreenTime
                 // save the state
                 _stateProvider.SaveState(lastKnownTime, duration, lastUserState, lastMessageShown, activityState);
             }
+            EventHandlerEnsureComputerState?.Invoke(this, new ComputerStateEventArgs(lastUserState));
 
         }
 
@@ -341,7 +341,7 @@ namespace ScreenTime
 
         protected virtual void Dispose(bool disposing)
         {
-            if (!disposedValue1)
+            if (!disposedValue)
             {
                 if (disposing)
                 {
@@ -351,7 +351,7 @@ namespace ScreenTime
 
                 // TODO: free unmanaged resources (unmanaged objects) and override finalizer
                 // TODO: set large fields to null
-                disposedValue1 = true;
+                disposedValue = true;
             }
         }
 
@@ -367,6 +367,12 @@ namespace ScreenTime
             // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
             Dispose(disposing: true);
             GC.SuppressFinalize(this);
+        }
+
+        public void RequestExtension(int minutes)
+        {
+
+            MessageBox.Show("Not yet implemented. Go play outside.");
         }
     }
 }

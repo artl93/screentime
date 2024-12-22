@@ -5,6 +5,7 @@ using ScreenTime;
 internal class HiddenForm : Form
 {
     private readonly NotifyIcon icon;
+    private bool messageIsVisible = false;
 
     public HiddenForm(IScreenTimeStateClient client, LockProvider lockProvider, ILogger? logger)
     {
@@ -17,8 +18,12 @@ internal class HiddenForm : Form
             Icon = SystemIcons.Application,
             ContextMenuStrip = new ContextMenuStrip()
         };
-        icon.ContextMenuStrip.Items.Add("Reset", null, (s, e) => { client.Reset(); });
-        icon.ContextMenuStrip.Items.Add("Exit", null, (s, e) => { icon.Visible = false; Application.Exit(); });
+        // icon.ContextMenuStrip.Items.Add("Reset", null, (s, e) => { client.Reset(); });
+        icon.ContextMenuStrip.Items.Add("Request 5 minute extension", null, (s, e) => { client.RequestExtension(5); });
+        icon.ContextMenuStrip.Items.Add("Request 15 minute extension", null, (s, e) => { client.RequestExtension(15); });
+        icon.ContextMenuStrip.Items.Add("Request 60 minute extension", null, (s, e) => { client.RequestExtension(60); });
+        icon.ContextMenuStrip.Items.Add("Exit", null, (s, e) => { Application.Exit(); });
+        icon.MouseClick += (s, e) => { if (e.Button == MouseButtons.Left) Application.Exit(); };
         icon.Visible = true;
         icon.Text = "Connecting...";
         client.OnMessageUpdate += (s, e) =>
@@ -30,11 +35,29 @@ internal class HiddenForm : Form
         {
             logger?.LogWarning($"User status changed: {Enum.GetName(e.Status.State)} - {e.Status.LoggedInTime}");
             UpdateTooltip(e.Status);
-            if (e.Status.State == UserState.Lock)
+        };
+        client.EventHandlerEnsureComputerState += (s, e) =>
+        {
+            if (e.State == UserState.Lock)
             {
-                logger?.LogWarning("Locking workstation.");
-                Task.Delay(10000);
-                lockProvider.Lock();
+                if (!messageIsVisible)
+                {
+                    lock (this)
+                    {
+                        if (!messageIsVisible)
+                        {
+                            messageIsVisible = true;
+                            logger?.LogWarning($"Ensure computer state: {Enum.GetName(e.State)}");
+                            MessageBox.Show($"Imagine this computer is locked or I will REALLY lock it in the future.");
+                            Task.Delay(5000).Wait();
+                            messageIsVisible = false;
+                        }
+                        else
+                        {
+                            return;
+                        }
+                    }
+                }
             }
         };
         client.OnDayRollover += (s, e) =>
