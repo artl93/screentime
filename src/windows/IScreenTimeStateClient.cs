@@ -11,8 +11,8 @@ namespace ScreenTime
         event EventHandler<MessageEventArgs>? OnMessageUpdate;
         event EventHandler<ComputerStateEventArgs>? EventHandlerEnsureComputerState;
 
-        public Task StartSessionAsync(string reason);
-        public Task EndSessionAsync(string reason);
+        public void StartSession(string reason);
+        public void EndSession(string reason);
         public Task<UserStatus?> GetInteractiveTimeAsync();
         public Task<UserMessage?> GetMessage();
         public Task<UserConfiguration?> GetUserConfigurationAsync();

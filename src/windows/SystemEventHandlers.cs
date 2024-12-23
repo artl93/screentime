@@ -24,7 +24,7 @@ namespace ScreenTime
 
         void SystemEvents_SessionEnding(object sender, SessionEndingEventArgs e)
         {            
-            _client.EndSessionAsync(Enum.GetName(e.Reason)??string.Empty);
+            _client.EndSession(Enum.GetName(e.Reason)??string.Empty);
         }
 
         void SystemEvents_PowerModeChanged(object sender, PowerModeChangedEventArgs e)
@@ -32,10 +32,10 @@ namespace ScreenTime
             switch (e.Mode)
             {
                 case PowerModes.Resume:
-                    _client.StartSessionAsync(Enum.GetName(e.Mode) ?? string.Empty);
+                    _client.StartSession(Enum.GetName(e.Mode) ?? string.Empty);
                     break;
                 case PowerModes.Suspend:
-                    _client.EndSessionAsync(Enum.GetName(e.Mode) ?? string.Empty);
+                    _client.EndSession(Enum.GetName(e.Mode) ?? string.Empty);
                     break;
             }
         }
@@ -47,12 +47,12 @@ namespace ScreenTime
                 case SessionSwitchReason.SessionLock:
                 case SessionSwitchReason.SessionLogoff:
                 case SessionSwitchReason.ConsoleDisconnect:
-                    _client.EndSessionAsync(Enum.GetName(e.Reason) ?? string.Empty);
+                    _client.EndSession(Enum.GetName(e.Reason) ?? string.Empty);
                     break;
                 case SessionSwitchReason.SessionUnlock:
                 case SessionSwitchReason.SessionLogon:
                 case SessionSwitchReason.ConsoleConnect:
-                    _client.StartSessionAsync(Enum.GetName(e.Reason)??string.Empty);
+                    _client.StartSession(Enum.GetName(e.Reason)??string.Empty);
 
                     break;
             }

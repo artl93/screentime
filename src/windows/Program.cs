@@ -21,12 +21,12 @@ static class Program
         // ordering is important here to hook the event handlers
         var form = ServiceProvider.GetRequiredService<HiddenForm>();
         var client = ServiceProvider.GetRequiredService<IScreenTimeStateClient>();
-        client.StartSessionAsync("start program").Wait();
         host.Start();
+        client.StartSession("start program");
 
         Application.ApplicationExit += (s, e) =>
         {
-            client.EndSessionAsync("end program").Wait();
+            client.EndSession("end program");
             host.StopAsync().Wait();
         };
         Application.Run(form);
@@ -58,7 +58,13 @@ static class Program
                     };
                     return client;
                 });
-                services.AddSingleton<IUserConfigurationProvider, RegistryConfigurationProvider>();
+                services.AddSingleton<IUserConfigurationProvider, RegistryConfigurationProvider>((sp) =>
+                { 
+                    return new RegistryConfigurationProvider(
+                        sp.GetRequiredService<IUserConfigurationReader>(), 
+                        sp.GetRequiredService<TimeProvider>());
+                });
+                services.AddSingleton<IUserConfigurationReader, UserConfigurationReader>();
                 services.AddLogging(builder =>
                 {
                     builder.AddConsole();

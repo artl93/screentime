@@ -5,6 +5,6 @@ namespace ScreenTime
     {
         public Task<UserConfiguration> GetUserConfigurationForDayAsync();
         public Task SaveUserConfigurationForDayAsync(UserConfiguration configuration);
-        public event EventHandler<UserConfiguration>? OnConfigurationChanged;
+        public event EventHandler<UserConfigurationEventArgs>? OnConfigurationChanged;
     }
 }

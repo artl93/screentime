@@ -23,6 +23,7 @@ namespace ScreenTime
         private readonly UserStateProvider _stateProvider = stateProvider;
         private TimeSpan _resetTime = TimeSpan.Zero;
         private ITimer? callbackTimer;
+        private ITimer? heartbeatTimer;
         private bool disposedValue = false;
         private ActivityState activityState = ActivityState.Unknown;
         private UserState lastUserState;
@@ -39,9 +40,9 @@ namespace ScreenTime
 
         public async Task StartAsync(CancellationToken cancellationToken)
         {
-            userConfigurationProvider.OnConfigurationChanged += (s, e) => configuration = e;
-            configuration = await userConfigurationProvider.GetUserConfigurationForDayAsync();
             logger?.LogInformation("Starting ScreenTimeLocalService");
+            configuration = await userConfigurationProvider.GetUserConfigurationForDayAsync();
+            userConfigurationProvider.OnConfigurationChanged += (s, e) => ConfigurationChanged(e.Configuration);
             _resetTime = TimeSpan.Parse($"{configuration.ResetTime}");
             nextResetDate = GetNextResetTime(_resetTime);
 
@@ -70,8 +71,13 @@ namespace ScreenTime
             started = true;
             // this should have been called in CreateTimer
             callbackTimer = _timeProvider.CreateTimer(UpdateInteractiveTime, this, TimeSpan.Zero, TimeSpan.FromSeconds(1));
-            var heartbeatTimer = _timeProvider.CreateTimer(LogHeartbeat, this, TimeSpan.FromMinutes(.1), TimeSpan.FromMinutes(1)); 
+            heartbeatTimer = _timeProvider.CreateTimer(LogHeartbeat, this, TimeSpan.FromMinutes(.1), TimeSpan.FromMinutes(1)); 
 
+        }
+
+        private void ConfigurationChanged(UserConfiguration newConfiguration)
+        {            
+            configuration = newConfiguration;
         }
 
         private void LogHeartbeat(object? state) => logger?.LogInformation("Heartbeat - Duration: {0}", duration);
@@ -113,6 +119,8 @@ namespace ScreenTime
         
         private void DoUpdateTime()
         {
+            if (configuration == null)
+                return;
             if (!started)
                 return; 
             UpdateIdleTime();
@@ -167,6 +175,8 @@ namespace ScreenTime
 
         private void PostStatusChanges()
         {
+            if (configuration == null)
+                return;
             var interactiveTime = duration;
             var dailyTimeLimit = TimeSpan.FromMinutes(configuration.DailyLimitMinutes);
             var warningTime = TimeSpan.FromMinutes(configuration.WarningTimeMinutes);
@@ -191,33 +201,30 @@ namespace ScreenTime
             lastMessageShown = _timeProvider.GetUtcNow();
         }
 
-        public Task EndSessionAsync(string reason)
+        public void EndSession(string reason)
         {
-            return Task.Run(() =>
-            {
-                logger?.LogInformation("End session called ({0}) - {1}", reason, duration);
-                activityState = ActivityState.Inactive;
-                DoUpdateTime();
-                PostStatusChanges();
-                // todo - ensure time transitioned here
-            });
+            logger?.LogInformation("End session called ({0}) - {1}", reason, duration);
+            activityState = ActivityState.Inactive;
+            DoUpdateTime();
+            PostStatusChanges();
+            // todo - ensure time transitioned here
         }
 
 
-        public Task StartSessionAsync(string reason)
+        public void StartSession(string reason)
         {
-            return Task.Run(() =>
-            {
-                logger?.LogInformation("Start session called. ({0}) - {1}", reason, duration);
-                activityState = ActivityState.Active;
-                // todo - ensure time transitioned here
-                DoUpdateTime();
-                PostStatusChanges();            });
 
+            logger?.LogInformation("Start session called. ({0}) - {1}", reason, duration);
+            activityState = ActivityState.Active;
+            // todo - ensure time transitioned here
+            DoUpdateTime();
+            PostStatusChanges();            
         }
 
         public Task<UserStatus?> GetInteractiveTimeAsync()
         {
+            if (configuration == null)
+                return Task.FromResult<UserStatus?>(null);
             var interactiveTime = duration;
             var dailyTimeLimit = TimeSpan.FromMinutes(configuration.DailyLimitMinutes);
             var warningTime = TimeSpan.FromMinutes(configuration.WarningTimeMinutes);
@@ -233,6 +240,8 @@ namespace ScreenTime
 
         private UserState GetUserState(TimeSpan interactiveTime)
         {
+            if (configuration == null)
+                return UserState.Invalid;
             var dailyTimeLimit = TimeSpan.FromMinutes(configuration.DailyLimitMinutes);
             var warningTime = TimeSpan.FromMinutes(configuration.WarningTimeMinutes);
             var graceTime = TimeSpan.FromMinutes(configuration.GraceMinutes);
@@ -284,6 +293,8 @@ namespace ScreenTime
 
         private UserMessage GetUserMessage()
         {
+            if (configuration == null)
+                return new UserMessage("Error", "No configuration found", "❌", "none");
             var interactiveTime = duration;
             var dailyTimeLimit = TimeSpan.FromMinutes(configuration.DailyLimitMinutes);
             var warningTime = TimeSpan.FromMinutes(configuration.WarningTimeMinutes);
@@ -349,9 +360,9 @@ namespace ScreenTime
 
         }
 
-        public Task ResetAsync()
+        public async Task ResetAsync()
         {
-            return Task.Run(() =>
+            await Task.Run(() =>
             {
                 logger?.LogCritical("User time was reset!");
                 lastKnownTime = _timeProvider.GetUtcNow();
@@ -367,6 +378,7 @@ namespace ScreenTime
                 if (disposing)
                 {
                     callbackTimer?.Dispose();
+                    heartbeatTimer?.Dispose();
                     // TODO: dispose managed state (managed objects)
                 }
 
@@ -390,9 +402,9 @@ namespace ScreenTime
             GC.SuppressFinalize(this);
         }
 
-        public Task RequestExtensionAsync(int minutes)
+        public async Task RequestExtensionAsync(int minutes)
         {
-            return Task.Run(() =>
+            await Task.Run(() =>
             {
                 logger?.LogWarning($"Requesting extension for {minutes} minutes.");
                 MessageBox.Show("Not yet implemented. Go play outside.");

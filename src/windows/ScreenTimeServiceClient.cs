@@ -36,7 +36,7 @@ namespace ScreenTime
         public event EventHandler<MessageEventArgs>? OnMessageUpdate;
         public event EventHandler<ComputerStateEventArgs>? EventHandlerEnsureComputerState;
 
-        public async void StartSessionAsync()
+        public void StartSession(string _)
         {
             if (currentState == State.active)
             {
@@ -44,7 +44,7 @@ namespace ScreenTime
             }
 
             currentState = State.active;
-            _ = await _client.PutAsync($"events/start/{Environment.UserName}", null);
+            // _ = _client.PutAsync($"events/start/{Environment.UserName}", null).;
         }
 
         public async Task<UserConfiguration?> GetUserConfigurationAsync()
@@ -62,14 +62,14 @@ namespace ScreenTime
             }
         }
 
-        public async void EndSessionAsync()
+        public void EndSession(string _)
         {
             if (currentState == State.inactive)
             {
                 return;
             }
             currentState = State.inactive;
-            _ = await _client.PutAsync($"events/end/{Environment.UserName}", null);
+            // _ = await _client.PutAsync($"events/end/{Environment.UserName}", null);
         }
 
         public async Task<UserStatus?> GetInteractiveTimeAsync()
@@ -148,16 +148,6 @@ namespace ScreenTime
         }
 
         public void RequestExtension(int minutes)
-        {
-            throw new NotImplementedException();
-        }
-
-        Task IScreenTimeStateClient.StartSessionAsync(string reason)
-        {
-            throw new NotImplementedException();
-        }
-
-        Task IScreenTimeStateClient.EndSessionAsync(string reason)
         {
             throw new NotImplementedException();
         }

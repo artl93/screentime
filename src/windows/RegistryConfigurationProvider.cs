@@ -4,7 +4,7 @@ namespace ScreenTime
 {
     public class RegistryConfigurationProvider : IUserConfigurationProvider, IDisposable
     {
-        public event EventHandler<UserConfiguration>? OnConfigurationChanged;
+        public event EventHandler<UserConfigurationEventArgs>? OnConfigurationChanged;
         UserConfiguration? userConfigurationCache = null;
         private readonly ITimer? timer;
         private bool disposedValue;
@@ -13,8 +13,8 @@ namespace ScreenTime
         public RegistryConfigurationProvider(IUserConfigurationReader reader, TimeProvider? timeProvider = null)
         {
             this.reader = reader;
-            timer = timeProvider?.CreateTimer(OnCheckForUpdates, null, TimeSpan.FromSeconds(20), TimeSpan.FromMinutes(20));
             userConfigurationCache = reader.GetConfiguration();
+            timer = timeProvider?.CreateTimer(OnCheckForUpdates, null, TimeSpan.FromSeconds(20), TimeSpan.FromMinutes(20));
         }
 
         private void OnCheckForUpdates(object? state)
@@ -23,25 +23,33 @@ namespace ScreenTime
                 var configuration = reader.GetConfiguration();
                 if (userConfigurationCache != configuration)
                 {
-                    OnConfigurationChanged?.Invoke(this, configuration);
-                    userConfigurationCache = configuration;
+                    lock (this)
+                    {
+                        if (userConfigurationCache != configuration)
+                        {
+
+                            OnConfigurationChanged?.Invoke(this, new(this, configuration));
+                            userConfigurationCache = configuration;
+                        }
+                    }
                 }
             }
         }
 
         public Task<UserConfiguration> GetUserConfigurationForDayAsync()
         {
-            return Task.Run(() => reader.GetConfiguration());
+            var configuration = reader.GetConfiguration();
+            return Task.FromResult(configuration);
         }
 
-        public Task SaveUserConfigurationForDayAsync(UserConfiguration configuration)
+        public async Task SaveUserConfigurationForDayAsync(UserConfiguration configuration)
         {
-            return Task.Run(() =>
+            await Task.Run(() =>
             {
                 if (configuration != userConfigurationCache)
                 {
                     reader.SetConfiguration(configuration);
-                    OnConfigurationChanged?.Invoke(this, configuration);
+                    OnConfigurationChanged?.Invoke(this, new(this, configuration));
                     userConfigurationCache = configuration;
                 }
             });

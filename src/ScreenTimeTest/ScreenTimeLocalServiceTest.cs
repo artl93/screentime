@@ -84,11 +84,11 @@ namespace ScreenTimeTest
 
             using var service = new ScreenTimeLocalService(timeProvider, mockUserConfigurationProvider.Object, userStateProvider, null);
             await service.StartAsync(CancellationToken.None);
-            service.StartSessionAsync("test");
+            service.StartSession("test");
             timeProvider.Advance(elapsed);
 
             var result = await service.GetInteractiveTimeAsync();
-            service.EndSessionAsync("test");
+            service.EndSession("test");
             await service.StopAsync(CancellationToken.None);
 
             Assert.NotNull(result);
@@ -163,10 +163,10 @@ namespace ScreenTimeTest
                 var duration = end - start;
 
                 timeProvider.SetUtcNow(start.UtcDateTime);
-                await service.StartSessionAsync("test");
+                service.StartSession("test");
 
                 timeProvider.SetUtcNow(end.UtcDateTime);
-                await service.EndSessionAsync("test");
+                service.EndSession("test");
                 await service.StopAsync(CancellationToken.None);
 
                 expectedIntermediateDuration += duration;
@@ -205,7 +205,7 @@ namespace ScreenTimeTest
             service.OnDayRollover += (sender, args) => eventTriggered = true;
 
             await service.StartAsync(CancellationToken.None);
-            await service.StartSessionAsync("test");
+            service.StartSession("test");
             timeProvider.Advance(TimeSpan.FromDays(1));
             await service.StopAsync(CancellationToken.None);
 
@@ -227,7 +227,7 @@ namespace ScreenTimeTest
             var eventTriggered = false;
             service.OnTimeUpdate += (sender, args) => eventTriggered = true;
             await service.StartAsync(CancellationToken.None);
-            await service.StartSessionAsync("test");
+            service.StartSession("test");
             timeProvider.Advance(TimeSpan.FromMinutes(1));
             await service.StopAsync(CancellationToken.None);
             Assert.True(eventTriggered);
@@ -248,7 +248,7 @@ namespace ScreenTimeTest
             var eventTriggered = false;
             service.OnUserStatusChanged += (sender, args) => eventTriggered = true;
             await service.StartAsync(CancellationToken.None);
-            await service.StartSessionAsync("test");
+            service.StartSession("test");
             timeProvider.Advance(TimeSpan.FromHours(2));
             await service.StopAsync(CancellationToken.None);
             Assert.True(eventTriggered);
@@ -269,7 +269,7 @@ namespace ScreenTimeTest
             var eventTriggered = false;
             service.OnMessageUpdate += (sender, args) => eventTriggered = true;
             await service.StartAsync(CancellationToken.None);
-            await service.StartSessionAsync("test");
+            service.StartSession("test");
             timeProvider.Advance(TimeSpan.FromMinutes(1));
             await service.StopAsync(CancellationToken.None);
             Assert.True(eventTriggered);
