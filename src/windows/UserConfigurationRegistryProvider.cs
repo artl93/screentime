@@ -5,6 +5,7 @@ namespace ScreenTime
     public class UserConfigurationRegistryProvider : IUserConfigurationProvider, IDisposable
     {
         public event EventHandler<UserConfigurationEventArgs>? OnConfigurationChanged;
+        public event EventHandler<ExtensionResponseArgs>? OnExtensionResponse;
         UserConfiguration? userConfigurationCache = null;
         private readonly ITimer? timer;
         private bool disposedValue;
@@ -70,6 +71,30 @@ namespace ScreenTime
             }
         }
 
+        public void ResetExtensions()
+        {
+            if (userConfigurationCache is null)
+            {
+                return;
+            }
+            var newConfiguration = userConfigurationCache with { Extensions = null };
+            SaveUserConfigurationForDayAsync(newConfiguration).Wait();
+        }
+
+        public void AddExtension(DateTimeOffset date, int minutes)
+        {
+            if (userConfigurationCache is null)
+            {
+                return;
+            }
+            var newExtensions = userConfigurationCache.Extensions?.ToList() ?? [];
+            newExtensions.Add((date, minutes));
+            var newConfiguration = userConfigurationCache with { Extensions = [.. newExtensions] };
+            SaveUserConfigurationForDayAsync(newConfiguration).Wait();
+            OnExtensionResponse?.Invoke(this, new(this, $"Extension granted for {minutes} minutes."));
+        }
+
+
         // // TODO: override finalizer only if 'Dispose(bool disposing)' has code to free unmanaged resources
         // ~UserConfigurationRegistryProvider()
         // {
@@ -83,5 +108,6 @@ namespace ScreenTime
             Dispose(disposing: true);
             GC.SuppressFinalize(this);
         }
+
     }
 }

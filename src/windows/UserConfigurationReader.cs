@@ -1,4 +1,6 @@
 ﻿using Microsoft.Win32;
+using System.Configuration;
+using System.Text.Json;
 
 namespace ScreenTime
 {
@@ -6,6 +8,8 @@ namespace ScreenTime
     {
         const string _baseKey = @"HKEY_CURRENT_USER\Software\ScreenTime\Config";
         const string _defaultResetTime = "06:00:00";
+        JsonSerializerOptions serializerOptions = new JsonSerializerOptions()
+        { IncludeFields = true, };
 
         public UserConfiguration GetConfiguration()
         {
@@ -15,8 +19,11 @@ namespace ScreenTime
             var graceMinutes = GetRegistryIntValue(_baseKey, "GraceMinutes", 5);
             var dailyResetTime = Registry.GetValue(_baseKey, "DailyResetTime", _defaultResetTime);
             var dailyResetString = dailyResetTime == null ? _defaultResetTime : dailyResetTime.ToString() ?? _defaultResetTime;
+            var extensionsString = Registry.GetValue(_baseKey, "Extensions", null);
+            var extensions = System.Text.Json.JsonSerializer.Deserialize<(DateTimeOffset, int)[]>(extensionsString?.ToString() ?? "[]", serializerOptions);
 
-            return new UserConfiguration(Guid.NewGuid(), Environment.UserName, dailyLimit, warningTime, warningInterval, graceMinutes, dailyResetString);
+
+            return new UserConfiguration(Guid.NewGuid(), Environment.UserName, dailyLimit, warningTime, warningInterval, graceMinutes, dailyResetString, extensions?.ToList());
 
         }
 
@@ -27,6 +34,7 @@ namespace ScreenTime
             Registry.SetValue(_baseKey, "WarningInterval", configuration.WarningIntervalSeconds);
             Registry.SetValue(_baseKey, "GraceMinutes", configuration.GraceMinutes);
             Registry.SetValue(_baseKey, "DailyResetTime", configuration.ResetTime);
+            Registry.SetValue(_baseKey, "Extensions", System.Text.Json.JsonSerializer.Serialize(configuration?.Extensions, serializerOptions));
         }
 
         private static int GetRegistryIntValue(string key, string valueName, int defaultValue)

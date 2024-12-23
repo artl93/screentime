@@ -8,7 +8,7 @@
         int WarningIntervalSeconds = 60,
         int GraceMinutes = 5,
         string ResetTime = "06:00",
-        (DateTimeOffset, int)[]? Extensions = null)
+        List<(DateTimeOffset, int)>? Extensions = null)
     {
         public TimeSpan TotalTimeAllowed 
         { 
@@ -24,5 +24,23 @@
             } 
 
         }
+
+        public TimeSpan TotalExtensions
+        {
+            get
+            {
+                if (Extensions == null)
+                {
+                    return TimeSpan.Zero;
+                }
+                var total = TimeSpan.Zero;
+                foreach (var extension in Extensions)
+                {
+                    total += TimeSpan.FromMinutes(extension.Item2);
+                }
+                return total;
+            }
+        }
+
     }
 }

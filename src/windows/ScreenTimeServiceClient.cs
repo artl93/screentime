@@ -161,5 +161,10 @@ namespace ScreenTime
         {
             throw new NotImplementedException();
         }
+
+        public Task SaveCurrentConfigurationAsync()
+        {
+            throw new NotImplementedException();
+        }
     }
 }

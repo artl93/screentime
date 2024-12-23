@@ -1,7 +1,9 @@
 ﻿using Humanizer;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using System.Runtime.CompilerServices;
+using static System.Windows.Forms.VisualStyles.VisualStyleElement;
 [assembly: InternalsVisibleTo("ScreenTimeTest")]
 
 namespace ScreenTime
@@ -130,6 +132,7 @@ namespace ScreenTime
             if (nextResetDate == DateTimeOffset.MinValue)
             {
                 nextResetDate = GetNextResetTime(TimeSpan.Parse($"{configuration.ResetTime}"));
+                userConfigurationProvider.ResetExtensions();
                 duration = TimeSpan.Zero;
             }
 
@@ -220,10 +223,6 @@ namespace ScreenTime
         {
             if (configuration == null)
                 return Task.FromResult<UserStatus?>(null);
-            var interactiveTime = duration;
-            var dailyTimeLimit = TimeSpan.FromMinutes(configuration.DailyLimitMinutes);
-            var warningTime = TimeSpan.FromMinutes(configuration.WarningTimeMinutes);
-            var graceTime = TimeSpan.FromMinutes(configuration.GraceMinutes);
 
             return Task.FromResult<UserStatus?>(GetUserStatus());
         }
@@ -232,7 +231,7 @@ namespace ScreenTime
         {
             if (configuration == null)
                 return UserState.Invalid;
-            var dailyTimeLimit = TimeSpan.FromMinutes(configuration.DailyLimitMinutes);
+            var dailyTimeLimit = configuration.TotalTimeAllowed;
             var warningTime = TimeSpan.FromMinutes(configuration.WarningTimeMinutes);
             var graceTime = TimeSpan.FromMinutes(configuration.GraceMinutes);
             return GetUserState(duration, dailyTimeLimit, warningTime, graceTime, isIdle);
@@ -266,15 +265,16 @@ namespace ScreenTime
         {
             var state = GetUserState();
             var interactiveTime = duration;
-            var dailyTimeLimit = configuration == null ? TimeSpan.FromMinutes(120) : TimeSpan.FromMinutes(configuration.DailyLimitMinutes);
+            var dailyTimeLimit = configuration == null ? TimeSpan.FromMinutes(120) : configuration.TotalTimeAllowed;
+            var extensions = configuration == null ? TimeSpan.Zero : configuration.TotalExtensions;
             return state switch
             {
-                UserState.Lock => new UserStatus(interactiveTime, "🛡️", "logout", UserState.Lock, dailyTimeLimit),
-                UserState.Error => new UserStatus(interactiveTime, "🛑", "logout", UserState.Error, dailyTimeLimit),
-                UserState.Warn => new UserStatus(interactiveTime, "⚠️", "none", UserState.Warn, dailyTimeLimit),
-                UserState.Okay => new UserStatus(interactiveTime, "⏳", "none", UserState.Okay, dailyTimeLimit),
-                UserState.Paused => new UserStatus(interactiveTime, "💤", "none", UserState.Paused, dailyTimeLimit),
-                _ => new UserStatus(interactiveTime, "❌", "none", UserState.Invalid, dailyTimeLimit)
+                UserState.Lock => new UserStatus(interactiveTime, "🛡️", "logout", UserState.Lock, dailyTimeLimit, extensions),
+                UserState.Error => new UserStatus(interactiveTime, "🛑", "logout", UserState.Error, dailyTimeLimit, extensions),
+                UserState.Warn => new UserStatus(interactiveTime, "⚠️", "none", UserState.Warn, dailyTimeLimit, extensions),
+                UserState.Okay => new UserStatus(interactiveTime, "⏳", "none", UserState.Okay, dailyTimeLimit, extensions),
+                UserState.Paused => new UserStatus(interactiveTime, "💤", "none", UserState.Paused, dailyTimeLimit, extensions),
+                _ => new UserStatus(interactiveTime, "❌", "none", UserState.Invalid, dailyTimeLimit, extensions)
             }; 
         }
 
@@ -288,12 +288,12 @@ namespace ScreenTime
             if (configuration == null)
                 return new UserMessage("Error", "No configuration found", "❌", "none");
             var interactiveTime = duration;
-            var dailyTimeLimit = TimeSpan.FromMinutes(configuration.DailyLimitMinutes);
+            var dailyTimeLimit = configuration.TotalTimeAllowed;
             var warningTime = TimeSpan.FromMinutes(configuration.WarningTimeMinutes);
             var graceTime = TimeSpan.FromMinutes(configuration.GraceMinutes);
 
             var interactiveTimeString = TimeSpanHumanizeExtensions.Humanize(interactiveTime, precision: 2, maxUnit: Humanizer.Localisation.TimeUnit.Hour, minUnit: Humanizer.Localisation.TimeUnit.Second);
-            var allowedTimeString = TimeSpanHumanizeExtensions.Humanize(dailyTimeLimit);
+            var allowedTimeString = TimeSpanHumanizeExtensions.Humanize(dailyTimeLimit, minUnit: Humanizer.Localisation.TimeUnit.Minute, maxUnit: Humanizer.Localisation.TimeUnit.Hour, precision: 2);
 
             // when time is up, log them off
             if (interactiveTime >= dailyTimeLimit)
@@ -301,7 +301,7 @@ namespace ScreenTime
                 if (interactiveTime > dailyTimeLimit + graceTime)
                 {
                     // if they have gone over the limit, log them off
-                    return new UserMessage("Hey, you're done.", $"You have been logged for {interactiveTimeString} today. You're allowed {allowedTimeString} today. You have gone over by {TimeSpanHumanizeExtensions.Humanize(interactiveTime - dailyTimeLimit)}", "🛡️", "lock");
+                    return new UserMessage("Hey, you're done.", $"You have been logged for {interactiveTimeString} today. You're allowed {allowedTimeString} today. You have gone over by {TimeSpanHumanizeExtensions.Humanize(interactiveTime - dailyTimeLimit, precision : 2)}", "🛡️", "lock");
                 }
                 return new UserMessage("Time to log out.", $"You have been logged for {interactiveTimeString} today. You're allowed {allowedTimeString} today.", "🛑", "logout");
             }
@@ -352,6 +352,22 @@ namespace ScreenTime
 
         }
 
+
+        public async Task RequestExtensionAsync(int minutes)
+        {
+            await Task.Run(() =>
+            {
+                logger?.LogWarning($"Requesting extension for {minutes} minutes.");
+                userConfigurationProvider.AddExtension(_timeProvider.GetUtcNow(), minutes);
+                MessageBox.Show($"{minutes} have been granted. But seriously, get reeady for outdoor fun!");
+            });
+        }
+
+        public void ExtensionGrantedNotification(int minutes)
+        {
+            logger?.LogWarning($"Extension granted for {minutes} minutes.");
+        }
+
         public async Task ResetAsync()
         {
             await Task.Run(() =>
@@ -365,6 +381,17 @@ namespace ScreenTime
                 logger?.LogCritical("User time was successful!");
             });
         }
+
+        public async Task SaveCurrentConfigurationAsync()
+        {
+            if (configuration == null)
+                return;
+            await Task.Run(async () =>
+            {
+                await userConfigurationProvider.SaveUserConfigurationForDayAsync(configuration);
+            });
+        }
+
 
         protected virtual void Dispose(bool disposing)
         {
@@ -397,13 +424,5 @@ namespace ScreenTime
             GC.SuppressFinalize(this);
         }
 
-        public async Task RequestExtensionAsync(int minutes)
-        {
-            await Task.Run(() =>
-            {
-                logger?.LogWarning($"Requesting extension for {minutes} minutes.");
-                MessageBox.Show("Not yet implemented. Go play outside.");
-            });
-        }
     }
 }
