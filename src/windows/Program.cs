@@ -58,9 +58,9 @@ static class Program
                     };
                     return client;
                 });
-                services.AddSingleton<IUserConfigurationProvider, RegistryConfigurationProvider>((sp) =>
+                services.AddSingleton<IUserConfigurationProvider, UserConfigurationRegistryProvider>((sp) =>
                 { 
-                    return new RegistryConfigurationProvider(
+                    return new UserConfigurationRegistryProvider(
                         sp.GetRequiredService<IUserConfigurationReader>(), 
                         sp.GetRequiredService<TimeProvider>());
                 });

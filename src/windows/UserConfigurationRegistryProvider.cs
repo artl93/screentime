@@ -2,7 +2,7 @@
 
 namespace ScreenTime
 {
-    public class RegistryConfigurationProvider : IUserConfigurationProvider, IDisposable
+    public class UserConfigurationRegistryProvider : IUserConfigurationProvider, IDisposable
     {
         public event EventHandler<UserConfigurationEventArgs>? OnConfigurationChanged;
         UserConfiguration? userConfigurationCache = null;
@@ -10,7 +10,7 @@ namespace ScreenTime
         private bool disposedValue;
         private readonly IUserConfigurationReader reader;
 
-        public RegistryConfigurationProvider(IUserConfigurationReader reader, TimeProvider? timeProvider = null)
+        public UserConfigurationRegistryProvider(IUserConfigurationReader reader, TimeProvider? timeProvider = null)
         {
             this.reader = reader;
             userConfigurationCache = reader.GetConfiguration();
@@ -71,7 +71,7 @@ namespace ScreenTime
         }
 
         // // TODO: override finalizer only if 'Dispose(bool disposing)' has code to free unmanaged resources
-        // ~RegistryConfigurationProvider()
+        // ~UserConfigurationRegistryProvider()
         // {
         //     // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
         //     Dispose(disposing: false);
