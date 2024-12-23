@@ -307,6 +307,52 @@ namespace ScreenTimeTest
             await service.StopAsync(CancellationToken.None);
             Assert.True(eventTriggered);
         }
+
+
+        [Fact]
+        public async Task TestOnExtensionChanged()
+        {
+            var start = DateTimeOffset.Parse("2024/12/14 00:00 -8:00");
+            FakeTimeProvider timeProvider = new(start);
+            timeProvider.SetLocalTimeZone(TimeProvider.System.LocalTimeZone);
+            var userStateProvider = new FakeUserStateProvider(start.ToString(), "00:00:00");
+            var guidA = Guid.Parse("07a78d36-c409-4805-8b56-e7cb2368bccf");
+            var configurationA = new UserConfiguration(guidA, "test");
+
+            UserConfigurationRegistryProvider provider = new UserConfigurationRegistryProvider(new MockUserConfigurationReader(configurationA), timeProvider);
+
+            using var service = new ScreenTimeLocalService(timeProvider, provider, userStateProvider, null);
+            var eventTriggered = false;
+            service.OnUserStatusChanged += (sender, args) => {
+                eventTriggered = true;
+                // test sequence 
+
+            };
+            await service.StartAsync(CancellationToken.None);
+            service.StartSession("test");
+            timeProvider.Advance(TimeSpan.FromMinutes(60));
+            Assert.Equal(UserState.Error, service.GetUserState());
+            await service.RequestExtensionAsync(5);
+            Assert.True(eventTriggered);
+            Assert.Equal(UserState.Warn, service.GetUserState());
+            await service.RequestExtensionAsync(30);
+            Assert.True(eventTriggered);
+            Assert.Equal(UserState.Okay, service.GetUserState());
+            var userStatus = await service.GetInteractiveTimeAsync();
+            Assert.NotNull(userStatus);
+            Assert.Equal(TimeSpan.FromMinutes(35), userStatus.ExtensionTime);
+            Assert.Equal(TimeSpan.FromMinutes(60), userStatus.LoggedInTime);
+            timeProvider.Advance(TimeSpan.FromMinutes(25));
+            userStatus = await service.GetInteractiveTimeAsync();
+            Assert.NotNull(userStatus);
+            Assert.Equal(TimeSpan.FromMinutes(85), userStatus.LoggedInTime);
+            Assert.Equal(UserState.Warn, service.GetUserState());
+
+
+
+            await service.StopAsync(CancellationToken.None);
+            Assert.True(eventTriggered);
+        }
     }
 }
 

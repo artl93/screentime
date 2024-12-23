@@ -44,6 +44,7 @@ namespace ScreenTime
             logger?.LogInformation("Starting ScreenTimeLocalService");
             configuration = await userConfigurationProvider.GetUserConfigurationForDayAsync();
             userConfigurationProvider.OnConfigurationChanged += (s, e) => OnConfigurationChanged(e.Configuration);
+            userConfigurationProvider.OnExtensionResponse += (s, e) => ExtensionGrantedNotification(e.Minutes);
             nextResetDate = GetNextResetTime(TimeSpan.Parse($"{configuration.ResetTime}"));
 
             _stateProvider.LoadState(out lastKnownTime, out duration, out lastUserState, out lastMessageShown, out activityState);
@@ -359,13 +360,18 @@ namespace ScreenTime
             {
                 logger?.LogWarning($"Requesting extension for {minutes} minutes.");
                 userConfigurationProvider.AddExtension(_timeProvider.GetUtcNow(), minutes);
-                MessageBox.Show($"{minutes} have been granted. But seriously, get reeady for outdoor fun!");
             });
         }
 
         public void ExtensionGrantedNotification(int minutes)
         {
             logger?.LogWarning($"Extension granted for {minutes} minutes.");
+            OnMessageUpdate?.Invoke(this, new MessageEventArgs(new UserMessage(
+                "Extension granted",
+                $"Extension granted for {minutes} minutes. But seriously, touch grass.",
+                "🌱",
+                "none"
+                )));
         }
 
         public async Task ResetAsync()

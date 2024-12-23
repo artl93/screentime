@@ -5,7 +5,7 @@ namespace ScreenTime
     public class UserConfigurationRegistryProvider : IUserConfigurationProvider, IDisposable
     {
         public event EventHandler<UserConfigurationEventArgs>? OnConfigurationChanged;
-        public event EventHandler<ExtensionResponseArgs>? OnExtensionResponse;
+        public event EventHandler<UserConfigurationResponseEventArgs>? OnExtensionResponse;
         UserConfiguration? userConfigurationCache = null;
         private readonly ITimer? timer;
         private bool disposedValue;
@@ -91,7 +91,7 @@ namespace ScreenTime
             newExtensions.Add((date, minutes));
             var newConfiguration = userConfigurationCache with { Extensions = [.. newExtensions] };
             SaveUserConfigurationForDayAsync(newConfiguration).Wait();
-            OnExtensionResponse?.Invoke(this, new(this, $"Extension granted for {minutes} minutes."));
+            OnExtensionResponse?.Invoke(this, new(this, minutes));
         }
 
 
