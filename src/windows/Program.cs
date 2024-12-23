@@ -15,6 +15,7 @@ static class Program
         Application.SetHighDpiMode(HighDpiMode.SystemAware);
         Application.EnableVisualStyles();
         Application.SetCompatibleTextRenderingDefault(false);
+        DoRegistration(args);
 
         var host = CreateHostBuilder(args).Build();
         ServiceProvider = host.Services;
@@ -40,64 +41,26 @@ static class Program
         var builder = Host.CreateDefaultBuilder(args)
             .ConfigureServices((hostContext, services) =>
             {
-                services.AddHostedService((sp) => sp.GetRequiredService<IScreenTimeStateClient>())
-                    .ActivateSingleton<LockProvider>()
-                    .ActivateSingleton<SystemEventHandlers>();
-                services.AddSingleton(serviceProvider =>
-                {
-                    // create the server
-                    var firstArg = args.Length > 0 ? args[0] : string.Empty;
-                    IScreenTimeStateClient client = firstArg switch
-                    {
-                        "develop" => new ScreenTimeServiceClient(serviceProvider.GetRequiredService<HttpClient>()).SetBaseAddress("https://localhost:7186"),
-                        "live" => new ScreenTimeServiceClient(serviceProvider.GetRequiredService<HttpClient>()).SetBaseAddress("https://screentime.azurewebsites.net"),
-                        _ => new ScreenTimeLocalService(serviceProvider.GetRequiredService<TimeProvider>(),
-                            serviceProvider.GetRequiredService<IUserConfigurationProvider>(),
-                            serviceProvider.GetRequiredService<UserStateProvider>(), 
-                            serviceProvider.GetRequiredService<ILogger<ScreenTimeLocalService>>())
-                    };
-                    return client;
-                });
-                services.AddSingleton<IUserConfigurationProvider, UserConfigurationRegistryProvider>((sp) =>
-                { 
-                    return new UserConfigurationRegistryProvider(
-                        sp.GetRequiredService<IUserConfigurationReader>(), 
-                        sp.GetRequiredService<TimeProvider>());
-                });
-                services.AddSingleton<IUserConfigurationReader, UserConfigurationReader>();
-                services.AddLogging(builder =>
-                {
-                    builder.AddConsole();
-                    builder.AddDebug();
-                    builder.AddFile(options =>
-                    {
-                        options.FileName = "screentime-"; // The log file prefixes
-                        options.LogDirectory = Path.GetTempPath(); // The directory to write the logs
-                        options.FileSizeLimit = 20 * 1024 * 1024; // The maximum log file size (20MB here)
-                        options.FilesPerPeriodicityLimit = 200; // When maximum file size is reached, create a new file, up to a limit of 200 files per periodicity
-                        options.Extension = "log"; // The log file extension
-                    });
-                });
-                services.AddSingleton((sp) => new SystemEventHandlers(sp.GetRequiredService<IScreenTimeStateClient>()));
+                services.AddHostedServices();
+                services.AddScreenTimeClient(args);
+                services.AddUserConfiguration();
+                services.AddLoggingConfiguration();
+                services.AddSingleton<SystemEventHandlers>();
                 services.AddSingleton(TimeProvider.System);
-                services.AddHttpClient("screentimeClient", client =>
-                {
-                    client.Timeout = TimeSpan.FromSeconds(10);
-                    client.DefaultRequestHeaders.Accept.Clear();
-                    client.DefaultRequestHeaders.Accept.Add(new System.Net.Http.Headers.MediaTypeWithQualityHeaderValue("application/json"));
-                    client.DefaultRequestHeaders.Add("User-Agent", "ScreenTime");
-                })
-                    .AddStandardResilienceHandler();
+                services.AddHttpClientConfiguration();
                 services.AddSingleton<UserStateProvider>();
                 services.AddSingleton<LockProvider>();
-                services.AddSingleton<UserConfigurationReader>();
-                services.AddSingleton((sp) => new HiddenForm(
-                    sp.GetRequiredService<IScreenTimeStateClient>(), 
+                services.AddSingleton<HiddenForm>((sp) => new HiddenForm(
+                    sp.GetRequiredService<IScreenTimeStateClient>(),
                     sp.GetRequiredService<LockProvider>(),
-                    sp.GetRequiredService<ILogger<HiddenForm>>()
-                    ));
-    });
+                    sp.GetRequiredService<ILogger<HiddenForm>>()));
+            });
+            
+         return builder;
+    }
 
+    static void DoRegistration(string[] args)
+    {
         if (args.Contains("install"))
         {
             // install the application to run on startup
@@ -118,7 +81,5 @@ static class Program
             // uninstall the application from running on startup
             Registry.SetValue(@"HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Run", "ScreenTime", String.Empty);
         }
-
-        return builder;
     }
 }
