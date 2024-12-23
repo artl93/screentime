@@ -21,7 +21,6 @@ namespace ScreenTime
         private readonly TimeProvider _timeProvider = timeProvider;
         public UserConfiguration? configuration;
         private readonly UserStateProvider _stateProvider = stateProvider;
-        private TimeSpan _resetTime = TimeSpan.Zero;
         private ITimer? callbackTimer;
         private ITimer? heartbeatTimer;
         private bool disposedValue = false;
@@ -42,9 +41,8 @@ namespace ScreenTime
         {
             logger?.LogInformation("Starting ScreenTimeLocalService");
             configuration = await userConfigurationProvider.GetUserConfigurationForDayAsync();
-            userConfigurationProvider.OnConfigurationChanged += (s, e) => ConfigurationChanged(e.Configuration);
-            _resetTime = TimeSpan.Parse($"{configuration.ResetTime}");
-            nextResetDate = GetNextResetTime(_resetTime);
+            userConfigurationProvider.OnConfigurationChanged += (s, e) => OnConfigurationChanged(e.Configuration);
+            nextResetDate = GetNextResetTime(TimeSpan.Parse($"{configuration.ResetTime}"));
 
             _stateProvider.LoadState(out lastKnownTime, out duration, out lastUserState, out lastMessageShown, out activityState);
             // data corruption issue
@@ -75,8 +73,10 @@ namespace ScreenTime
 
         }
 
-        private void ConfigurationChanged(UserConfiguration newConfiguration)
-        {            
+        private void OnConfigurationChanged(UserConfiguration newConfiguration)
+        {
+            if ((configuration != null) && (configuration.ResetTime != newConfiguration.ResetTime))
+                nextResetDate = GetNextResetTime(TimeSpan.Parse($"{newConfiguration.ResetTime}"));
             configuration = newConfiguration;
         }
 
@@ -129,7 +129,7 @@ namespace ScreenTime
 
             if (nextResetDate == DateTimeOffset.MinValue)
             {
-                nextResetDate = GetNextResetTime(_resetTime);
+                nextResetDate = GetNextResetTime(TimeSpan.Parse($"{configuration.ResetTime}"));
                 duration = TimeSpan.Zero;
             }
 
@@ -137,7 +137,7 @@ namespace ScreenTime
             {
                 var delta = currentTime - nextResetDate;
                 delta = activityState == ActivityState.Active ? delta.Add(TimeSpan.FromDays(delta.Days * -1)) : TimeSpan.FromMinutes(0);
-                nextResetDate = GetNextResetTime(_resetTime);
+                nextResetDate = GetNextResetTime(TimeSpan.Parse($"{configuration.ResetTime}"));
                 duration = delta;
                 OnDayRollover?.Invoke(this, new MessageEventArgs(new UserMessage(
                     "Day rollover",
@@ -356,10 +356,13 @@ namespace ScreenTime
         {
             await Task.Run(() =>
             {
-                logger?.LogCritical("User time was reset!");
+                logger?.LogCritical("User time was attempted!");
                 lastKnownTime = _timeProvider.GetUtcNow();
                 duration = TimeSpan.Zero;
-                nextResetDate = GetNextResetTime(_resetTime);
+                if (configuration == null)
+                    return;
+                nextResetDate = GetNextResetTime(TimeSpan.Parse($"{configuration.ResetTime}"));
+                logger?.LogCritical("User time was successful!");
             });
         }
 
