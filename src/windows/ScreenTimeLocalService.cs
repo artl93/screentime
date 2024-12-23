@@ -153,8 +153,7 @@ namespace ScreenTime
 
             lastKnownTime = currentTime;
             OnTimeUpdate?.Invoke(this, new UserStatusEventArgs(
-                GetUserStatus(duration, TimeSpan.FromMinutes(configuration.DailyLimitMinutes), TimeSpan.FromMinutes(configuration.WarningTimeMinutes), 
-                TimeSpan.FromMinutes(configuration.GraceMinutes), isIdle), 
+                GetUserStatus(), 
                 currentTime, duration));
             lock (this)
             {
@@ -177,12 +176,8 @@ namespace ScreenTime
         {
             if (configuration == null)
                 return;
-            var interactiveTime = duration;
-            var dailyTimeLimit = TimeSpan.FromMinutes(configuration.DailyLimitMinutes);
-            var warningTime = TimeSpan.FromMinutes(configuration.WarningTimeMinutes);
-            var graceTime = TimeSpan.FromMinutes(configuration.GraceMinutes);
-            var status = GetUserStatus(interactiveTime, dailyTimeLimit, warningTime, graceTime, isIdle);
-            OnUserStatusChanged?.Invoke(this, new UserStatusEventArgs(status, _timeProvider.GetUtcNow(), interactiveTime));
+            var status = GetUserStatus();
+            OnUserStatusChanged?.Invoke(this, new UserStatusEventArgs(status, _timeProvider.GetUtcNow(), duration));
         }
 
 
@@ -230,22 +225,17 @@ namespace ScreenTime
             var warningTime = TimeSpan.FromMinutes(configuration.WarningTimeMinutes);
             var graceTime = TimeSpan.FromMinutes(configuration.GraceMinutes);
 
-            return Task.FromResult<UserStatus?>(GetUserStatus(interactiveTime, dailyTimeLimit, warningTime, graceTime, isIdle));
+            return Task.FromResult<UserStatus?>(GetUserStatus());
         }
 
-        private UserState GetUserState()
-        {
-            return GetUserState(duration);
-        }
-
-        private UserState GetUserState(TimeSpan interactiveTime)
+        public UserState GetUserState()
         {
             if (configuration == null)
                 return UserState.Invalid;
             var dailyTimeLimit = TimeSpan.FromMinutes(configuration.DailyLimitMinutes);
             var warningTime = TimeSpan.FromMinutes(configuration.WarningTimeMinutes);
             var graceTime = TimeSpan.FromMinutes(configuration.GraceMinutes);
-            return GetUserState(interactiveTime, dailyTimeLimit, warningTime, graceTime, isIdle);
+            return GetUserState(duration, dailyTimeLimit, warningTime, graceTime, isIdle);
         }
 
         private static UserState GetUserState(TimeSpan interactiveTime, TimeSpan dailyTimeLimit, TimeSpan warningTime, TimeSpan gracePeriod, bool isIdle)
@@ -272,9 +262,11 @@ namespace ScreenTime
             }
         }
 
-        private static UserStatus GetUserStatus(TimeSpan interactiveTime, TimeSpan dailyTimeLimit, TimeSpan warningTime, TimeSpan gracePeriod, bool isIdle)
+        private UserStatus GetUserStatus()
         {
-            var state = GetUserState(interactiveTime, dailyTimeLimit, warningTime, gracePeriod, isIdle);
+            var state = GetUserState();
+            var interactiveTime = duration;
+            var dailyTimeLimit = configuration == null ? TimeSpan.FromMinutes(120) : TimeSpan.FromMinutes(configuration.DailyLimitMinutes);
             return state switch
             {
                 UserState.Lock => new UserStatus(interactiveTime, "🛡️", "logout", UserState.Lock, dailyTimeLimit),
@@ -283,7 +275,7 @@ namespace ScreenTime
                 UserState.Okay => new UserStatus(interactiveTime, "⏳", "none", UserState.Okay, dailyTimeLimit),
                 UserState.Paused => new UserStatus(interactiveTime, "💤", "none", UserState.Paused, dailyTimeLimit),
                 _ => new UserStatus(interactiveTime, "❌", "none", UserState.Invalid, dailyTimeLimit)
-            };
+            }; 
         }
 
         public Task<UserMessage?> GetMessage()

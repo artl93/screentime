@@ -77,7 +77,7 @@ namespace ScreenTimeTest
 
             var userStateProvider = new FakeUserStateProvider(lastKnownDate, lastDuration);
 
-            var mockUserConfiguration = new UserConfiguration(Guid.NewGuid(), "test", ResetTime: resetTime);
+            var mockUserConfiguration = new UserConfiguration(Guid.Parse("07a78d36-c409-4805-8b56-e7cb2368bccf"), "test", ResetTime: resetTime);
             Moq.Mock<IUserConfigurationProvider> mockUserConfigurationProvider = new Moq.Mock<IUserConfigurationProvider>();
             mockUserConfigurationProvider.Setup(m => m.GetUserConfigurationForDayAsync()).ReturnsAsync(mockUserConfiguration);
 
@@ -146,7 +146,7 @@ namespace ScreenTimeTest
 
             var userStateProvider = new FakeUserStateProvider(timeProvider);
 
-            var mockUserConfiguration = new UserConfiguration(Guid.NewGuid(), "test");
+            var mockUserConfiguration = new UserConfiguration(Guid.Parse("07a78d36-c409-4805-8b56-e7cb2368bccf"), "test");
             Moq.Mock<IUserConfigurationProvider> mockUserConfigurationProvider = new Moq.Mock<IUserConfigurationProvider>();
             mockUserConfigurationProvider.Setup(m => m.GetUserConfigurationForDayAsync()).ReturnsAsync(mockUserConfiguration);
 
@@ -195,7 +195,7 @@ namespace ScreenTimeTest
             timeProvider.SetLocalTimeZone(TimeProvider.System.LocalTimeZone);
 
             var userStateProvider = new FakeUserStateProvider(start.ToString(), "00:00:00");
-            var mockUserConfiguration = new UserConfiguration(Guid.NewGuid(), "test");
+            var mockUserConfiguration = new UserConfiguration(Guid.Parse("07a78d36-c409-4805-8b56-e7cb2368bccf"), "test");
             Moq.Mock<IUserConfigurationProvider> mockUserConfigurationProvider = new Moq.Mock<IUserConfigurationProvider>();
             mockUserConfigurationProvider.Setup(m => m.GetUserConfigurationForDayAsync()).ReturnsAsync(mockUserConfiguration);
 
@@ -219,7 +219,7 @@ namespace ScreenTimeTest
             FakeTimeProvider timeProvider = new(start);
             timeProvider.SetLocalTimeZone(TimeProvider.System.LocalTimeZone);
             var userStateProvider = new FakeUserStateProvider(start.ToString(), "00:00:00");
-            var mockUserConfiguration = new UserConfiguration(Guid.NewGuid(), "test");
+            var mockUserConfiguration = new UserConfiguration(Guid.Parse("07a78d36-c409-4805-8b56-e7cb2368bccf"), "test");
             Moq.Mock<IUserConfigurationProvider> mockUserConfigurationProvider = new Moq.Mock<IUserConfigurationProvider>();
             mockUserConfigurationProvider.Setup(m => m.GetUserConfigurationForDayAsync()).ReturnsAsync(mockUserConfiguration);
 
@@ -240,7 +240,7 @@ namespace ScreenTimeTest
             FakeTimeProvider timeProvider = new(start);
             timeProvider.SetLocalTimeZone(TimeProvider.System.LocalTimeZone);
             var userStateProvider = new FakeUserStateProvider(start.ToString(), "00:00:00");
-            var mockUserConfiguration = new UserConfiguration(Guid.NewGuid(), "test");
+            var mockUserConfiguration = new UserConfiguration(Guid.Parse("07a78d36-c409-4805-8b56-e7cb2368bccf"), "test");
             Moq.Mock<IUserConfigurationProvider> mockUserConfigurationProvider = new Moq.Mock<IUserConfigurationProvider>();
             mockUserConfigurationProvider.Setup(m => m.GetUserConfigurationForDayAsync()).ReturnsAsync(mockUserConfiguration);
             
@@ -261,7 +261,7 @@ namespace ScreenTimeTest
             FakeTimeProvider timeProvider = new(start);
             timeProvider.SetLocalTimeZone(TimeProvider.System.LocalTimeZone);
             var userStateProvider = new FakeUserStateProvider(start.ToString(), "00:00:00");
-            var mockUserConfiguration = new UserConfiguration(Guid.NewGuid(), "test");
+            var mockUserConfiguration = new UserConfiguration(Guid.Parse("07a78d36-c409-4805-8b56-e7cb2368bccf"), "test");
             Moq.Mock<IUserConfigurationProvider> mockUserConfigurationProvider = new Moq.Mock<IUserConfigurationProvider>();
             mockUserConfigurationProvider.Setup(m => m.GetUserConfigurationForDayAsync()).ReturnsAsync(mockUserConfiguration);
 
@@ -271,6 +271,39 @@ namespace ScreenTimeTest
             await service.StartAsync(CancellationToken.None);
             service.StartSession("test");
             timeProvider.Advance(TimeSpan.FromMinutes(1));
+            await service.StopAsync(CancellationToken.None);
+            Assert.True(eventTriggered);
+        }
+
+        [Fact]
+        public async Task TestOnConfigurationChangedViaSave()
+        {
+            var start = DateTimeOffset.Parse("2024/12/14 00:00 -8:00");
+            FakeTimeProvider timeProvider = new(start);
+            timeProvider.SetLocalTimeZone(TimeProvider.System.LocalTimeZone);
+            var userStateProvider = new FakeUserStateProvider(start.ToString(), "00:00:00");
+            var guidA = Guid.Parse("07a78d36-c409-4805-8b56-e7cb2368bccf");
+            var guidB = Guid.Parse("df991e7f-12c4-4c1e-8bb6-591065103f61");
+            var configurationA = new UserConfiguration(guidA, "test");
+            var configurationB = new UserConfiguration(guidB, "test", DailyLimitMinutes: 145);
+
+            UserConfigurationRegistryProvider provider = new UserConfigurationRegistryProvider(new MockUserConfigurationReader(configurationA), timeProvider);
+
+            using var service = new ScreenTimeLocalService(timeProvider, provider, userStateProvider, null);
+            var eventTriggered = false;
+            service.OnUserStatusChanged += (sender, args) => { 
+                 eventTriggered = true;
+                // test sequence 
+
+            };
+            await service.StartAsync(CancellationToken.None);
+            service.StartSession("test");
+            timeProvider.Advance(TimeSpan.FromMinutes(120));
+            Assert.Equal(UserState.Lock, service.GetUserState());
+            await provider.SaveUserConfigurationForDayAsync(configurationB);
+            Assert.True(eventTriggered);
+            Assert.Equal(UserState.Okay, service.GetUserState());
+
             await service.StopAsync(CancellationToken.None);
             Assert.True(eventTriggered);
         }

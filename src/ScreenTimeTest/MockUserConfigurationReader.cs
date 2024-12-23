@@ -14,6 +14,7 @@ namespace ScreenTimeTest
         {
             return userConfiguration;
         }
+
         public void SetConfiguration(UserConfiguration configuration)
         {
             userConfiguration = configuration;

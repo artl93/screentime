@@ -14,7 +14,7 @@ namespace ScreenTime
         {
             this.reader = reader;
             userConfigurationCache = reader.GetConfiguration();
-            timer = timeProvider?.CreateTimer(OnCheckForUpdates, null, TimeSpan.FromSeconds(20), TimeSpan.FromMinutes(20));
+            timer = timeProvider?.CreateTimer(OnCheckForUpdates, null, TimeSpan.FromSeconds(20), TimeSpan.FromSeconds(20));
         }
 
         private void OnCheckForUpdates(object? state)

@@ -51,13 +51,13 @@ namespace ScreenTimeTest
         }
 
         [Fact]
-        public async void OnConfigurationChanged_EventNotTriggered()
+        public async Task OnConfigurationChanged_EventNotTriggered()
         {
             var guidA = Guid.Parse("07a78d36-c409-4805-8b56-e7cb2368bccf");
             var guidB = Guid.Parse("df991e7f-12c4-4c1e-8bb6-591065103f61");
             var configurationA = new UserConfiguration(guidA, "test");
             var configurationB = new UserConfiguration(guidA, "test");
-            var expectedConguration = new UserConfiguration(guidA, "test");
+            var expectedConfiguration = new UserConfiguration(guidA, "test");
             var _mockReader = new MockUserConfigurationReader(configurationA);
 
             var _mockTimeProvider = new FakeTimeProvider();
@@ -73,19 +73,19 @@ namespace ScreenTimeTest
             await _provider.SaveUserConfigurationForDayAsync(configurationB);
             _mockTimeProvider.Advance(TimeSpan.FromSeconds(20));
 
-            Assert.Equal(expectedConguration, await _provider.GetUserConfigurationForDayAsync());
+            Assert.Equal(expectedConfiguration, await _provider.GetUserConfigurationForDayAsync());
             Assert.False(eventTriggered);
         }
 
         // test that the update event fires when the configuration changes
         [Fact]
-        public async void OnConfigurationChanged_EventTriggeredUsingSave()
+        public async Task OnConfigurationChanged_EventTriggeredUsingSave()
         {
             var guidA = Guid.Parse("07a78d36-c409-4805-8b56-e7cb2368bccf");
             var guidB = Guid.Parse("df991e7f-12c4-4c1e-8bb6-591065103f61");
             var configurationA = new UserConfiguration(guidA, "test");
             var configurationB = new UserConfiguration(guidB, "test");
-            var expectedConguration = new UserConfiguration(guidB, "test");
+            var expectedConfiguration = new UserConfiguration(guidB, "test");
             var _mockReader = new MockUserConfigurationReader(configurationA);
 
             var _mockTimeProvider = new FakeTimeProvider();
@@ -106,18 +106,18 @@ namespace ScreenTimeTest
             _mockTimeProvider.Advance(TimeSpan.FromSeconds(20));
 
             Assert.True(eventTriggered);
-            Assert.Equal(expectedConguration, await _provider.GetUserConfigurationForDayAsync());
+            Assert.Equal(expectedConfiguration, await _provider.GetUserConfigurationForDayAsync());
         }
 
 
         [Fact]
-        public async void OnConfigurationChanged_EventTriggeredUsingWatcher()
+        public async Task OnConfigurationChanged_EventTriggeredUsingWatcher()
         {
             var guidA = Guid.Parse("07a78d36-c409-4805-8b56-e7cb2368bccf");
             var guidB = Guid.Parse("df991e7f-12c4-4c1e-8bb6-591065103f61");
             var configurationA = new UserConfiguration(guidA, "test");
             var configurationB = new UserConfiguration(guidB, "test");
-            var expectedConguration = new UserConfiguration(guidB, "test");
+            var expectedConfiguration = new UserConfiguration(guidB, "test");
             var _mockReader = new MockUserConfigurationReader(configurationA);
 
             var _mockTimeProvider = new FakeTimeProvider();
@@ -136,7 +136,7 @@ namespace ScreenTimeTest
             _mockTimeProvider.Advance(TimeSpan.FromSeconds(20));
 
             Assert.True(eventTriggered);
-            Assert.Equal(expectedConguration, await _provider.GetUserConfigurationForDayAsync());
+            Assert.Equal(expectedConfiguration, await _provider.GetUserConfigurationForDayAsync());
         }
 
     }
