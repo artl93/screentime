@@ -53,6 +53,7 @@ static class Program
                 services.AddSingleton<HiddenForm>((sp) => new HiddenForm(
                     sp.GetRequiredService<IScreenTimeStateClient>(),
                     sp.GetRequiredService<SystemLockStateService>(),
+                    sp.GetRequiredService<IUserConfigurationProvider>(),
                     sp.GetRequiredService<ILogger<HiddenForm>>()));
             });
             

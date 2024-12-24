@@ -11,7 +11,10 @@ internal class HiddenForm : Form
     private bool _disableLock;
     private int _lockDelaySeconds; 
 
-    public HiddenForm(IScreenTimeStateClient client, SystemLockStateService lockProvider, IUserConfigurationProvider userConfigurationProvider, ILogger? logger)
+    public HiddenForm(IScreenTimeStateClient client, 
+        SystemLockStateService lockProvider, 
+        IUserConfigurationProvider userConfigurationProvider, 
+        ILogger? logger)
     {
         _userConfigurationProvider = userConfigurationProvider;
         var result = _userConfigurationProvider.GetUserConfigurationForDayAsync().Result;
@@ -84,7 +87,6 @@ internal class HiddenForm : Form
                                 MessageBox.Show($"Imagine this computer is locked or I will REALLY lock it in the future.");
                             }
                             Task.Delay(5000).Wait();
-                            lockProvider.Lock();
                             messageIsVisible = false;
                         }
                         else
@@ -119,7 +121,7 @@ internal class HiddenForm : Form
             UserState.Okay => SystemIcons.Information,
             UserState.Warn => SystemIcons.Warning,
             UserState.Error => SystemIcons.Error,
-            UserState.Lock => SystemIcons.GetStockIcon(StockIconId.Lock, StockIconOptions.SmallIcon),
+            UserState.Lock => SystemIcons.Shield,
             UserState.Paused => SystemIcons.GetStockIcon(StockIconId.World),
             _ => SystemIcons.Application
         };
