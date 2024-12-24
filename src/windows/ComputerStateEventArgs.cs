@@ -1,8 +1,7 @@
 ﻿namespace ScreenTime
 {
-    public class ComputerStateEventArgs
+    public class ComputerStateEventArgs(UserState state) : EventArgs
     {
-        public ComputerStateEventArgs(UserState state) => State = state;
-        public UserState State { get; }
+        public UserState State { get; } = state;
     }
 }

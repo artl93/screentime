@@ -8,6 +8,8 @@
         int WarningIntervalSeconds = 60,
         int GraceMinutes = 5,
         string ResetTime = "06:00",
+        bool DisableLock = false,
+        int DelayLockSeconds = 10,
         List<(DateTimeOffset, int)>? Extensions = null)
     {
         public TimeSpan TotalTimeAllowed 

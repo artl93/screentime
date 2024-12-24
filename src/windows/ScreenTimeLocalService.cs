@@ -16,7 +16,7 @@ namespace ScreenTime
         ILogger? logger) 
         : IScreenTimeStateClient, IDisposable, IHostedService
     {
-        private IUserConfigurationProvider userConfigurationProvider = userConfigurationProvider;
+        private readonly IUserConfigurationProvider userConfigurationProvider = userConfigurationProvider;
         private DateTimeOffset lastKnownTime;
         private DateTimeOffset nextResetDate;
         private TimeSpan duration;
@@ -83,12 +83,12 @@ namespace ScreenTime
             configuration = newConfiguration;
         }
 
-        private void LogHeartbeat(object? state) => logger?.LogInformation("Heartbeat - Duration: {0}", duration);
+        private void LogHeartbeat(object? state) => logger?.LogInformation("Heartbeat - Duration: {Duration}", duration);
 
         public Task StopAsync(CancellationToken cancellationToken)
         {
             logger?.LogInformation("Stopping ScreenTimeLocalService");
-            logger?.LogInformation("Final duration: {0}", duration);
+            logger?.LogInformation("Final duration: {Duration}", duration);
             return Task.CompletedTask;
         }
 
@@ -100,12 +100,12 @@ namespace ScreenTime
 
             if (utcResetTime <= _timeProvider.GetUtcNow())
             {
-                logger?.LogInformation("Next reset time is {0}", utcResetTime.AddDays(1));
+                logger?.LogInformation("Next reset time is {ResetTime}", utcResetTime.AddDays(1));
                 return utcResetTime.AddDays(1);
             }
             else
             {
-                logger?.LogInformation("Next reset time is {0}", utcResetTime);
+                logger?.LogInformation("Next reset time is {ResetTime}", utcResetTime);
                 return utcResetTime;
             }
         }
@@ -202,7 +202,7 @@ namespace ScreenTime
 
         public void EndSession(string reason)
         {
-            logger?.LogInformation("End session called ({0}) - {1}", reason, duration);
+            logger?.LogInformation("End session called ({Reason}) - {Duration}", reason, duration);
             activityState = UserActivityState.Inactive;
             DoUpdateTime();
             PostStatusChanges();
@@ -213,7 +213,7 @@ namespace ScreenTime
         public void StartSession(string reason)
         {
 
-            logger?.LogInformation("Start session called. ({0}) - {1}", reason, duration);
+            logger?.LogInformation("Start session called. ({Reason}) - {Duration}", reason, duration);
             activityState = UserActivityState.Active;
             // todo - ensure time transitioned here
             DoUpdateTime();
@@ -338,14 +338,14 @@ namespace ScreenTime
                     {
                         isIdle = true;
                         // this.OnUserStatusChanged?.Invoke(this, new UserStatusEventArgs(new UserStatus(duration, "💤", "none", UserState.Paused, TimeSpan.FromMinutes(0)), _timeProvider.GetUtcNow(), duration));
-                        logger?.LogInformation("User is idle for {0} minutes", idleTime.TotalMinutes);
+                        logger?.LogInformation("User is idle for {Minutes} minutes", idleTime.TotalMinutes);
                         activityState = UserActivityState.Inactive;
                     }
                 }
             }
             else if (isIdle)
             {
-                logger?.LogInformation($"User is no longer idle {idleTimeLast}");
+                logger?.LogInformation("User is no longer idle {IdleTimeLast}", idleTimeLast);
                 isIdle = false;
                 activityState = UserActivityState.Active;
             }
@@ -358,14 +358,14 @@ namespace ScreenTime
         {
             await Task.Run(() =>
             {
-                logger?.LogWarning($"Requesting extension for {minutes} minutes.");
+                logger?.LogWarning("Requesting extension for {Minutes} minutes.", minutes);
                 userConfigurationProvider.AddExtension(_timeProvider.GetUtcNow(), minutes);
             });
         }
 
         public void ExtensionGrantedNotification(int minutes)
         {
-            logger?.LogWarning($"Extension granted for {minutes} minutes.");
+            logger?.LogWarning("Extension granted for {Minutes} minutes.", minutes);
             OnMessageUpdate?.Invoke(this, new MessageEventArgs(new UserMessage(
                 "Extension granted",
                 $"Extension granted for {minutes} minutes. But seriously, touch grass.",

@@ -5,15 +5,31 @@ using ScreenTime;
 internal class HiddenForm : Form
 {
     private readonly NotifyIcon icon;
+    private readonly IUserConfigurationProvider _userConfigurationProvider;
     private bool messageIsVisible = false;
     private bool silentMode = false;
+    private bool _disableLock;
+    private int _lockDelaySeconds; 
 
-    public HiddenForm(IScreenTimeStateClient client, SystemLockStateService lockProvider, ILogger? logger)
+    public HiddenForm(IScreenTimeStateClient client, SystemLockStateService lockProvider, IUserConfigurationProvider userConfigurationProvider, ILogger? logger)
     {
+        _userConfigurationProvider = userConfigurationProvider;
+        var result = _userConfigurationProvider.GetUserConfigurationForDayAsync().Result;
+        _disableLock = result.DisableLock;
+        _lockDelaySeconds = result.DelayLockSeconds;
+        _userConfigurationProvider.OnConfigurationChanged += (s, e) =>
+        {
+            _disableLock = e.Configuration.DisableLock;
+            _lockDelaySeconds = e.Configuration.DelayLockSeconds;
+            logger?.LogInformation("Lock {State} by configuration. Delay {Seconds}.", _disableLock ? "disabled" : "enabled", _lockDelaySeconds);
+        };
+        logger?.LogInformation("Lock {State} by configuration. Delay {Seconds}", _disableLock ? "disabled" : "enabled", _lockDelaySeconds);
+
         this.WindowState = FormWindowState.Minimized;
         this.ShowInTaskbar = false;
         this.ShowIcon = false;
         this.Visible = false;
+
         icon = new NotifyIcon
         {
             Icon = SystemIcons.Application,
@@ -34,12 +50,12 @@ internal class HiddenForm : Form
         icon.Text = "Connecting...";
         client.OnMessageUpdate += (s, e) =>
         {
-            logger?.LogWarning($"Message update: {e.Message.Message}");
+            logger?.LogWarning("Message update: {Message}", e.Message.Message);
             ShowMessage(e.Message);
         } ;
         client.OnUserStatusChanged += (s, e) =>
         {
-            logger?.LogWarning($"User status changed: {Enum.GetName(e.Status.State)} - {e.Status.LoggedInTime}");
+            logger?.LogWarning("User status changed: {State} - {LoggedInTime}", Enum.GetName(e.Status.State), e.Status.LoggedInTime);
             UpdateTooltip(e.Status);
         };
         client.EventHandlerEnsureComputerState += (s, e) =>
@@ -55,9 +71,20 @@ internal class HiddenForm : Form
                         if (!messageIsVisible)
                         {
                             messageIsVisible = true;
-                            logger?.LogWarning($"Ensure computer state: {Enum.GetName(e.State)}");
+                            logger?.LogWarning("Ensure computer state: {State}", Enum.GetName(e.State));
+                            if (!_disableLock)
+                            {
+                                MessageBox.Show($"Time is up. Locking this machine in {_lockDelaySeconds} seconds.");
+                                // leave this safety delay in place to prevent the lock from happening too quickly
+                                Task.Delay(TimeSpan.FromSeconds(Math.Max(_lockDelaySeconds, 2))).Wait();
+                                lockProvider.Lock();
+                            }
+                            else
+                            {
                                 MessageBox.Show($"Imagine this computer is locked or I will REALLY lock it in the future.");
-                                Task.Delay(5000).Wait();
+                            }
+                            Task.Delay(5000).Wait();
+                            lockProvider.Lock();
                             messageIsVisible = false;
                         }
                         else
@@ -70,7 +97,7 @@ internal class HiddenForm : Form
         };
         client.OnDayRollover += (s, e) =>
         {
-            logger?.LogInformation($"Day rollover.{e.Message}");
+            logger?.LogInformation("Day rollover. {Message}", e.Message);
             ShowMessage(e.Message);
         };
         client.OnTimeUpdate += (s, e) => UpdateTooltip(e.Status);

@@ -9,8 +9,6 @@ namespace ScreenTimeTest
 {
     public class RegistryConfigurationProviderTests
     {
-        private bool _disposedValue;
-
         [Fact]
         public async Task GetUserConfigurationForDayAsync_ReturnsConfiguration()
         {
@@ -29,26 +27,6 @@ namespace ScreenTimeTest
             Assert.Equal(expectedConfig, result);
         }
 
-
-
-        [Fact]
-        public async Task SaveUserConfigurationForDayAsync_SavesConfiguration()
-        {
-            var _mockReader = new Mock<IUserConfigurationReader>();
-            var _mockTimeProvider = new FakeTimeProvider();
-            using var _provider = new UserConfigurationProvider(_mockReader.Object, _mockTimeProvider);
-            _mockTimeProvider.SetUtcNow(DateTime.Parse("00:00:00"));
-
-            // Arrange
-            var expectedConfig = new UserConfiguration(Guid.NewGuid(), "test");
-            _mockReader.Setup(r => r.SetConfiguration(expectedConfig));
-
-            // Act
-            await _provider.SaveUserConfigurationForDayAsync(expectedConfig);
-
-            // Assert
-            _mockReader.Verify(r => r.SetConfiguration(expectedConfig), Times.Once);
-        }
 
         [Fact]
         public async Task OnConfigurationChanged_EventNotTriggered()

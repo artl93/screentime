@@ -3,22 +3,22 @@ using System.Runtime.InteropServices;
 
 namespace ScreenTime
 {
-    public class SystemLockStateService
+    public partial class SystemLockStateService : ILockStateService
     {
-        [DllImport("user32.dll")]
-        static extern bool LockWorkStation();
+        [LibraryImport("user32.dll", EntryPoint = "LockWorkStation")]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        static private partial bool LockWorkStation();
 
         public void Lock()
         {
-            Task.Delay(1000).Wait();
-            // LockWorkStation();
-            // TODO: reenable locking
+            // leave this safety delay in place to prevent the lock from happening too quickly
+            LockWorkStation();
         }
 
-        public void LogOut()
+        public void Logout()
         {
             ManagementBaseObject? mboShutdown;
-            ManagementClass mcWin32 = new ("Win32_OperatingSystem");
+            ManagementClass mcWin32 = new("Win32_OperatingSystem");
             mcWin32.Get();
             mcWin32.Scope.Options.EnablePrivileges = true;
             ManagementBaseObject mboShutdownParams = mcWin32.GetMethodParameters("Win32Shutdown");
