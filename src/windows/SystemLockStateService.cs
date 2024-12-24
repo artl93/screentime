@@ -3,7 +3,7 @@ using System.Runtime.InteropServices;
 
 namespace ScreenTime
 {
-    public class LockProvider
+    public class SystemLockStateService
     {
         [DllImport("user32.dll")]
         static extern bool LockWorkStation();

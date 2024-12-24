@@ -2,7 +2,7 @@
 namespace ScreenTime
 {
 
-    public enum ActivityState
+    public enum UserActivityState
     {
         Active,
         Inactive,

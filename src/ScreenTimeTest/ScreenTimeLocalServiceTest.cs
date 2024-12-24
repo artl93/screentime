@@ -287,7 +287,7 @@ namespace ScreenTimeTest
             var configurationA = new UserConfiguration(guidA, "test");
             var configurationB = new UserConfiguration(guidB, "test", DailyLimitMinutes: 145);
 
-            UserConfigurationRegistryProvider provider = new UserConfigurationRegistryProvider(new MockUserConfigurationReader(configurationA), timeProvider);
+            UserConfigurationProvider provider = new UserConfigurationProvider(new MockUserConfigurationReader(configurationA), timeProvider);
 
             using var service = new ScreenTimeLocalService(timeProvider, provider, userStateProvider, null);
             var eventTriggered = false;
@@ -319,7 +319,7 @@ namespace ScreenTimeTest
             var guidA = Guid.Parse("07a78d36-c409-4805-8b56-e7cb2368bccf");
             var configurationA = new UserConfiguration(guidA, "test");
 
-            UserConfigurationRegistryProvider provider = new UserConfigurationRegistryProvider(new MockUserConfigurationReader(configurationA), timeProvider);
+            UserConfigurationProvider provider = new UserConfigurationProvider(new MockUserConfigurationReader(configurationA), timeProvider);
 
             using var service = new ScreenTimeLocalService(timeProvider, provider, userStateProvider, null);
             var eventTriggered = false;

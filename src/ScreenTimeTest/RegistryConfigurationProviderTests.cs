@@ -16,7 +16,7 @@ namespace ScreenTimeTest
         {
             var _mockReader = new Mock<IUserConfigurationReader>();
             var _mockTimeProvider = new FakeTimeProvider();
-            using var _provider = new UserConfigurationRegistryProvider(_mockReader.Object, _mockTimeProvider);
+            using var _provider = new UserConfigurationProvider(_mockReader.Object, _mockTimeProvider);
 
             // Arrange
             var expectedConfig = new UserConfiguration(Guid.NewGuid(), "test");
@@ -36,7 +36,7 @@ namespace ScreenTimeTest
         {
             var _mockReader = new Mock<IUserConfigurationReader>();
             var _mockTimeProvider = new FakeTimeProvider();
-            using var _provider = new UserConfigurationRegistryProvider(_mockReader.Object, _mockTimeProvider);
+            using var _provider = new UserConfigurationProvider(_mockReader.Object, _mockTimeProvider);
             _mockTimeProvider.SetUtcNow(DateTime.Parse("00:00:00"));
 
             // Arrange
@@ -61,7 +61,7 @@ namespace ScreenTimeTest
             var _mockReader = new MockUserConfigurationReader(configurationA);
 
             var _mockTimeProvider = new FakeTimeProvider();
-            using var _provider = new UserConfigurationRegistryProvider(_mockReader, _mockTimeProvider);
+            using var _provider = new UserConfigurationProvider(_mockReader, _mockTimeProvider);
             _mockTimeProvider.SetUtcNow(DateTime.Parse("00:00:00"));
 
 
@@ -89,7 +89,7 @@ namespace ScreenTimeTest
             var _mockReader = new MockUserConfigurationReader(configurationA);
 
             var _mockTimeProvider = new FakeTimeProvider();
-            using var _provider = new UserConfigurationRegistryProvider(_mockReader, _mockTimeProvider);
+            using var _provider = new UserConfigurationProvider(_mockReader, _mockTimeProvider);
             _mockTimeProvider.SetUtcNow(DateTime.Parse("00:00:00"));
 
             // Arrange
@@ -121,7 +121,7 @@ namespace ScreenTimeTest
             var _mockReader = new MockUserConfigurationReader(configurationA);
 
             var _mockTimeProvider = new FakeTimeProvider();
-            using var _provider = new UserConfigurationRegistryProvider(_mockReader, _mockTimeProvider);
+            using var _provider = new UserConfigurationProvider(_mockReader, _mockTimeProvider);
             _mockTimeProvider.SetUtcNow(DateTime.Parse("00:00:00"));
 
             // Arrange

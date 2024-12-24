@@ -45,14 +45,14 @@ static class Program
                 services.AddScreenTimeClient(args);
                 services.AddUserConfiguration();
                 services.AddLoggingConfiguration();
-                services.AddSingleton<SystemEventHandlers>();
+                services.AddSingleton<SystemStateEventHandlers>();
                 services.AddSingleton(TimeProvider.System);
                 services.AddHttpClientConfiguration();
-                services.AddSingleton<UserStateProvider>();
-                services.AddSingleton<LockProvider>();
+                services.AddSingleton<UserStateRegistryProvider>();
+                services.AddSingleton<SystemLockStateService>();
                 services.AddSingleton<HiddenForm>((sp) => new HiddenForm(
                     sp.GetRequiredService<IScreenTimeStateClient>(),
-                    sp.GetRequiredService<LockProvider>(),
+                    sp.GetRequiredService<SystemLockStateService>(),
                     sp.GetRequiredService<ILogger<HiddenForm>>()));
             });
             

@@ -5,7 +5,7 @@ namespace ScreenTimeTest
 {
     public partial class ScreenTimeLocalServiceTest
     {
-        class FakeUserStateProvider : UserStateProvider
+        class FakeUserStateProvider : UserStateRegistryProvider
         {
             public FakeUserStateProvider(TimeProvider timeProvider)
             {
@@ -13,7 +13,7 @@ namespace ScreenTimeTest
                 Duration = TimeSpan.Zero;
                 State = UserState.Okay;
                 TimeMessageLastShown = timeProvider.GetUtcNow().AddDays(-7);
-                ActivityState = ActivityState.Inactive;
+                ActivityState = UserActivityState.Inactive;
             }
 
             public FakeUserStateProvider(string lastKnownDate, string duration)
@@ -22,16 +22,16 @@ namespace ScreenTimeTest
                 Duration = TimeSpan.Parse(duration);
                 State = UserState.Okay;
                 TimeMessageLastShown = LastKnownDate.AddDays(-7);
-                ActivityState = ActivityState.Inactive;
+                ActivityState = UserActivityState.Inactive;
             }
 
             public DateTimeOffset LastKnownDate { get; set; }
             public TimeSpan Duration { get; set;  }
             public UserState State { get; set; }
             public DateTimeOffset TimeMessageLastShown { get; set; }
-            public ActivityState ActivityState { get; set; }
+            public UserActivityState ActivityState { get; set; }
 
-            public override void LoadState(out DateTimeOffset lastKnownTime, out TimeSpan duration, out UserState state, out DateTimeOffset timeMessageLastShown, out ActivityState activityState)
+            public override void LoadState(out DateTimeOffset lastKnownTime, out TimeSpan duration, out UserState state, out DateTimeOffset timeMessageLastShown, out UserActivityState activityState)
             {
                 lastKnownTime = LastKnownDate;
                 duration = Duration;
@@ -39,7 +39,7 @@ namespace ScreenTimeTest
                 timeMessageLastShown = TimeMessageLastShown;
                 activityState = ActivityState;
             }
-            public override void SaveState(DateTimeOffset lastKnownTime, TimeSpan duration, UserState state, DateTimeOffset timeMessageLastShown, ActivityState activityState)
+            public override void SaveState(DateTimeOffset lastKnownTime, TimeSpan duration, UserState state, DateTimeOffset timeMessageLastShown, UserActivityState activityState)
             {
                 LastKnownDate = lastKnownTime;
                 Duration = duration;

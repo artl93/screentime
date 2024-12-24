@@ -4,7 +4,7 @@ using System.Text.Json;
 
 namespace ScreenTime
 {
-    public class UserConfigurationReader : IUserConfigurationReader
+    public class UserConfigurationRegistryReader : IUserConfigurationReader
     {
         const string _baseKey = @"HKEY_CURRENT_USER\Software\ScreenTime\Config";
         const string _defaultResetTime = "06:00:00";

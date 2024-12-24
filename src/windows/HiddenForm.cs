@@ -8,7 +8,7 @@ internal class HiddenForm : Form
     private bool messageIsVisible = false;
     private bool silentMode = false;
 
-    public HiddenForm(IScreenTimeStateClient client, LockProvider lockProvider, ILogger? logger)
+    public HiddenForm(IScreenTimeStateClient client, SystemLockStateService lockProvider, ILogger? logger)
     {
         this.WindowState = FormWindowState.Minimized;
         this.ShowInTaskbar = false;

@@ -12,7 +12,7 @@ namespace ScreenTime
     public partial class ScreenTimeLocalService(
         TimeProvider timeProvider, 
         IUserConfigurationProvider userConfigurationProvider, 
-        UserStateProvider stateProvider, 
+        UserStateRegistryProvider stateProvider, 
         ILogger? logger) 
         : IScreenTimeStateClient, IDisposable, IHostedService
     {
@@ -22,11 +22,11 @@ namespace ScreenTime
         private TimeSpan duration;
         private readonly TimeProvider _timeProvider = timeProvider;
         public UserConfiguration? configuration;
-        private readonly UserStateProvider _stateProvider = stateProvider;
+        private readonly UserStateRegistryProvider _stateProvider = stateProvider;
         private ITimer? callbackTimer;
         private ITimer? heartbeatTimer;
         private bool disposedValue = false;
-        private ActivityState activityState = ActivityState.Unknown;
+        private UserActivityState activityState = UserActivityState.Unknown;
         private UserState lastUserState;
         private DateTimeOffset lastMessageShown;
         bool started = false;
@@ -60,13 +60,13 @@ namespace ScreenTime
                 duration = TimeSpan.Zero;
                 lastKnownTime = _timeProvider.GetUtcNow();
             }
-            if (activityState != ActivityState.Active)
+            if (activityState != UserActivityState.Active)
             {
                  // only count the time in between the last state and now if the last state was active
                  // otherwise, throw it out.
                  lastKnownTime = _timeProvider.GetUtcNow();
             }
-            activityState = ActivityState.Active;
+            activityState = UserActivityState.Active;
 
 
             started = true;
@@ -140,7 +140,7 @@ namespace ScreenTime
             if (currentTime >= nextResetDate)
             {
                 var delta = currentTime - nextResetDate;
-                delta = activityState == ActivityState.Active ? delta.Add(TimeSpan.FromDays(delta.Days * -1)) : TimeSpan.FromMinutes(0);
+                delta = activityState == UserActivityState.Active ? delta.Add(TimeSpan.FromDays(delta.Days * -1)) : TimeSpan.FromMinutes(0);
                 nextResetDate = GetNextResetTime(TimeSpan.Parse($"{configuration.ResetTime}"));
                 duration = delta;
                 OnDayRollover?.Invoke(this, new MessageEventArgs(new UserMessage(
@@ -150,7 +150,7 @@ namespace ScreenTime
                     "none"
                     ) ));
             }
-            else if (activityState == ActivityState.Active)
+            else if (activityState == UserActivityState.Active)
             {
                 duration += timeSinceLast;
             }
@@ -203,7 +203,7 @@ namespace ScreenTime
         public void EndSession(string reason)
         {
             logger?.LogInformation("End session called ({0}) - {1}", reason, duration);
-            activityState = ActivityState.Inactive;
+            activityState = UserActivityState.Inactive;
             DoUpdateTime();
             PostStatusChanges();
             // todo - ensure time transitioned here
@@ -214,7 +214,7 @@ namespace ScreenTime
         {
 
             logger?.LogInformation("Start session called. ({0}) - {1}", reason, duration);
-            activityState = ActivityState.Active;
+            activityState = UserActivityState.Active;
             // todo - ensure time transitioned here
             DoUpdateTime();
             PostStatusChanges();            
@@ -339,7 +339,7 @@ namespace ScreenTime
                         isIdle = true;
                         // this.OnUserStatusChanged?.Invoke(this, new UserStatusEventArgs(new UserStatus(duration, "💤", "none", UserState.Paused, TimeSpan.FromMinutes(0)), _timeProvider.GetUtcNow(), duration));
                         logger?.LogInformation("User is idle for {0} minutes", idleTime.TotalMinutes);
-                        activityState = ActivityState.Inactive;
+                        activityState = UserActivityState.Inactive;
                     }
                 }
             }
@@ -347,7 +347,7 @@ namespace ScreenTime
             {
                 logger?.LogInformation($"User is no longer idle {idleTimeLast}");
                 isIdle = false;
-                activityState = ActivityState.Active;
+                activityState = UserActivityState.Active;
             }
             idleTimeLast = idleTime;
 
