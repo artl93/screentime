@@ -1,7 +1,6 @@
 ﻿namespace ScreenTime
 {
     public record class UserConfiguration(
-        Guid Id,
         string Name,
         int DailyLimitMinutes = 60,
         int WarningTimeMinutes = 10,

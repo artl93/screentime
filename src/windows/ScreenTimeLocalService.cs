@@ -374,6 +374,11 @@ namespace ScreenTime
                 )));
         }
 
+        public UserActivityState GetActivityState()
+        {
+            return activityState;
+        }
+
         public async Task ResetAsync()
         {
             await Task.Run(() =>

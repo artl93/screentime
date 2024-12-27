@@ -77,8 +77,8 @@ namespace ScreenTimeTest
 
             var userStateProvider = new FakeUserStateProvider(lastKnownDate, lastDuration);
 
-            var mockUserConfiguration = new UserConfiguration(Guid.Parse("07a78d36-c409-4805-8b56-e7cb2368bccf"), "test", ResetTime: resetTime);
-            Moq.Mock<IUserConfigurationProvider> mockUserConfigurationProvider = new Moq.Mock<IUserConfigurationProvider>();
+            var mockUserConfiguration = new UserConfiguration("test", ResetTime: resetTime);
+            Moq.Mock<IUserConfigurationProvider> mockUserConfigurationProvider = new();
             mockUserConfigurationProvider.Setup(m => m.GetUserConfigurationForDayAsync()).ReturnsAsync(mockUserConfiguration);
 
 
@@ -146,8 +146,8 @@ namespace ScreenTimeTest
 
             var userStateProvider = new FakeUserStateProvider(timeProvider);
 
-            var mockUserConfiguration = new UserConfiguration(Guid.Parse("07a78d36-c409-4805-8b56-e7cb2368bccf"), "test");
-            Moq.Mock<IUserConfigurationProvider> mockUserConfigurationProvider = new Moq.Mock<IUserConfigurationProvider>();
+            var mockUserConfiguration = new UserConfiguration("test");
+            Moq.Mock<IUserConfigurationProvider> mockUserConfigurationProvider = new();
             mockUserConfigurationProvider.Setup(m => m.GetUserConfigurationForDayAsync()).ReturnsAsync(mockUserConfiguration);
 
             using var service = new ScreenTimeLocalService(timeProvider, mockUserConfigurationProvider.Object, userStateProvider, null);
@@ -195,8 +195,8 @@ namespace ScreenTimeTest
             timeProvider.SetLocalTimeZone(TimeProvider.System.LocalTimeZone);
 
             var userStateProvider = new FakeUserStateProvider(start.ToString(), "00:00:00");
-            var mockUserConfiguration = new UserConfiguration(Guid.Parse("07a78d36-c409-4805-8b56-e7cb2368bccf"), "test");
-            Moq.Mock<IUserConfigurationProvider> mockUserConfigurationProvider = new Moq.Mock<IUserConfigurationProvider>();
+            var mockUserConfiguration = new UserConfiguration("test");
+            Moq.Mock<IUserConfigurationProvider> mockUserConfigurationProvider = new();
             mockUserConfigurationProvider.Setup(m => m.GetUserConfigurationForDayAsync()).ReturnsAsync(mockUserConfiguration);
 
 
@@ -219,8 +219,8 @@ namespace ScreenTimeTest
             FakeTimeProvider timeProvider = new(start);
             timeProvider.SetLocalTimeZone(TimeProvider.System.LocalTimeZone);
             var userStateProvider = new FakeUserStateProvider(start.ToString(), "00:00:00");
-            var mockUserConfiguration = new UserConfiguration(Guid.Parse("07a78d36-c409-4805-8b56-e7cb2368bccf"), "test");
-            Moq.Mock<IUserConfigurationProvider> mockUserConfigurationProvider = new Moq.Mock<IUserConfigurationProvider>();
+            var mockUserConfiguration = new UserConfiguration("test");
+            Moq.Mock<IUserConfigurationProvider> mockUserConfigurationProvider = new();
             mockUserConfigurationProvider.Setup(m => m.GetUserConfigurationForDayAsync()).ReturnsAsync(mockUserConfiguration);
 
             using var service = new ScreenTimeLocalService(timeProvider, mockUserConfigurationProvider.Object, userStateProvider, null);
@@ -240,8 +240,8 @@ namespace ScreenTimeTest
             FakeTimeProvider timeProvider = new(start);
             timeProvider.SetLocalTimeZone(TimeProvider.System.LocalTimeZone);
             var userStateProvider = new FakeUserStateProvider(start.ToString(), "00:00:00");
-            var mockUserConfiguration = new UserConfiguration(Guid.Parse("07a78d36-c409-4805-8b56-e7cb2368bccf"), "test");
-            Moq.Mock<IUserConfigurationProvider> mockUserConfigurationProvider = new Moq.Mock<IUserConfigurationProvider>();
+            var mockUserConfiguration = new UserConfiguration("test");
+            Moq.Mock<IUserConfigurationProvider> mockUserConfigurationProvider = new();
             mockUserConfigurationProvider.Setup(m => m.GetUserConfigurationForDayAsync()).ReturnsAsync(mockUserConfiguration);
             
             using var service = new ScreenTimeLocalService(timeProvider, mockUserConfigurationProvider.Object, userStateProvider, null);
@@ -261,8 +261,8 @@ namespace ScreenTimeTest
             FakeTimeProvider timeProvider = new(start);
             timeProvider.SetLocalTimeZone(TimeProvider.System.LocalTimeZone);
             var userStateProvider = new FakeUserStateProvider(start.ToString(), "00:00:00");
-            var mockUserConfiguration = new UserConfiguration(Guid.Parse("07a78d36-c409-4805-8b56-e7cb2368bccf"), "test");
-            Moq.Mock<IUserConfigurationProvider> mockUserConfigurationProvider = new Moq.Mock<IUserConfigurationProvider>();
+            var mockUserConfiguration = new UserConfiguration("test");
+            Moq.Mock<IUserConfigurationProvider> mockUserConfigurationProvider = new();
             mockUserConfigurationProvider.Setup(m => m.GetUserConfigurationForDayAsync()).ReturnsAsync(mockUserConfiguration);
 
             using var service = new ScreenTimeLocalService(timeProvider, mockUserConfigurationProvider.Object, userStateProvider, null);
@@ -282,12 +282,10 @@ namespace ScreenTimeTest
             FakeTimeProvider timeProvider = new(start);
             timeProvider.SetLocalTimeZone(TimeProvider.System.LocalTimeZone);
             var userStateProvider = new FakeUserStateProvider(start.ToString(), "00:00:00");
-            var guidA = Guid.Parse("07a78d36-c409-4805-8b56-e7cb2368bccf");
-            var guidB = Guid.Parse("df991e7f-12c4-4c1e-8bb6-591065103f61");
-            var configurationA = new UserConfiguration(guidA, "test");
-            var configurationB = new UserConfiguration(guidB, "test", DailyLimitMinutes: 145);
+            var configurationA = new UserConfiguration("testA");
+            var configurationB = new UserConfiguration("testB", DailyLimitMinutes: 145);
 
-            UserConfigurationProvider provider = new UserConfigurationProvider(new MockUserConfigurationReader(configurationA), timeProvider);
+            UserConfigurationProvider provider = new(new MockUserConfigurationReader(configurationA), timeProvider);
 
             using var service = new ScreenTimeLocalService(timeProvider, provider, userStateProvider, null);
             var eventTriggered = false;
@@ -316,10 +314,9 @@ namespace ScreenTimeTest
             FakeTimeProvider timeProvider = new(start);
             timeProvider.SetLocalTimeZone(TimeProvider.System.LocalTimeZone);
             var userStateProvider = new FakeUserStateProvider(start.ToString(), "00:00:00");
-            var guidA = Guid.Parse("07a78d36-c409-4805-8b56-e7cb2368bccf");
-            var configurationA = new UserConfiguration(guidA, "test");
+            var configurationA = new UserConfiguration("testA");
 
-            UserConfigurationProvider provider = new UserConfigurationProvider(new MockUserConfigurationReader(configurationA), timeProvider);
+            UserConfigurationProvider provider = new(new MockUserConfigurationReader(configurationA), timeProvider);
 
             using var service = new ScreenTimeLocalService(timeProvider, provider, userStateProvider, null);
             var eventTriggered = false;

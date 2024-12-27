@@ -166,5 +166,10 @@ namespace ScreenTime
         {
             throw new NotImplementedException();
         }
+
+        public UserActivityState GetActivityState()
+        {
+            throw new NotImplementedException();
+        }
     }
 }

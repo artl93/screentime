@@ -1,21 +1,24 @@
 ﻿
 using Microsoft.Extensions.Logging;
+using Microsoft.Win32;
 using ScreenTime;
 
 internal class HiddenForm : Form
 {
     private readonly NotifyIcon icon;
+    private readonly ILogger? logger;
     private readonly IUserConfigurationProvider _userConfigurationProvider;
     private bool messageIsVisible = false;
-    private bool silentMode = false;
+    // private bool silentMode = false;
     private bool _disableLock;
-    private int _lockDelaySeconds; 
+    private int _lockDelaySeconds;
 
     public HiddenForm(IScreenTimeStateClient client, 
         SystemLockStateService lockProvider, 
         IUserConfigurationProvider userConfigurationProvider, 
         ILogger? logger)
     {
+        this.logger = logger;
         _userConfigurationProvider = userConfigurationProvider;
         var result = _userConfigurationProvider.GetUserConfigurationForDayAsync().Result;
         _disableLock = result.DisableLock;
@@ -27,6 +30,19 @@ internal class HiddenForm : Form
             logger?.LogInformation("Lock {State} by configuration. Delay {Seconds}.", _disableLock ? "disabled" : "enabled", _lockDelaySeconds);
         };
         logger?.LogInformation("Lock {State} by configuration. Delay {Seconds}", _disableLock ? "disabled" : "enabled", _lockDelaySeconds);
+        SystemEvents.SessionSwitch += (s, e) =>
+        {
+
+            switch (e.Reason)
+            {
+                case SessionSwitchReason.SessionUnlock:
+                case SessionSwitchReason.SessionLogon:
+                case SessionSwitchReason.ConsoleConnect:
+                    logger?.LogInformation("Session unlocking for {Reason}.", Enum.GetName(e.Reason));
+                    isLocked = false;
+                    break;
+            }
+        };
 
         this.WindowState = FormWindowState.Minimized;
         this.ShowInTaskbar = false;
@@ -60,41 +76,16 @@ internal class HiddenForm : Form
         {
             logger?.LogWarning("User status changed: {State} - {LoggedInTime}", Enum.GetName(e.Status.State), e.Status.LoggedInTime);
             UpdateTooltip(e.Status);
+            if (e.Status.State == UserState.Lock)
+            {
+                HandleLocking(lockProvider);
+            }
         };
         client.EventHandlerEnsureComputerState += (s, e) =>
         {
-            if (silentMode) 
-                return;
             if (e.State == UserState.Lock)
             {
-                if (!messageIsVisible)
-                {
-                    lock (this)
-                    {
-                        if (!messageIsVisible)
-                        {
-                            messageIsVisible = true;
-                            logger?.LogWarning("Ensure computer state: {State}", Enum.GetName(e.State));
-                            if (!_disableLock)
-                            {
-                                MessageBox.Show($"Time is up. Locking this machine in {_lockDelaySeconds} seconds.");
-                                // leave this safety delay in place to prevent the lock from happening too quickly
-                                Task.Delay(TimeSpan.FromSeconds(Math.Max(_lockDelaySeconds, 2))).Wait();
-                                lockProvider.Lock();
-                            }
-                            else
-                            {
-                                MessageBox.Show($"Imagine this computer is locked or I will REALLY lock it in the future.");
-                            }
-                            Task.Delay(5000).Wait();
-                            messageIsVisible = false;
-                        }
-                        else
-                        {
-                            return;
-                        }
-                    }
-                }
+                HandleLocking(lockProvider);
             }
         };
         client.OnDayRollover += (s, e) =>
@@ -103,6 +94,82 @@ internal class HiddenForm : Form
             ShowMessage(e.Message);
         };
         client.OnTimeUpdate += (s, e) => UpdateTooltip(e.Status);
+
+    }
+
+    private void SystemEvents_SessionSwitch(object sender, SessionSwitchEventArgs e)
+    {
+        throw new NotImplementedException();
+    }
+
+    private readonly Lock messageBoxLock = new();
+    private readonly Lock screenLockLock = new();
+    private bool isLocked = false;
+    private Task MessageBoxTask = Task.CompletedTask;
+
+    private void HandleLocking(SystemLockStateService lockProvider)
+    {
+        int delay = Math.Max(_lockDelaySeconds, 5); // avoid pathological cases
+                                                    // display modeless message box that says "Locking"
+        ShowModelessMessageBox(delay);
+        EnsureLock(lockProvider, delay);
+    }
+
+    private void EnsureLock(SystemLockStateService lockProvider, int delay)
+    {
+        if (_disableLock)
+            return;
+        if (isLocked)
+            return;
+        lock (screenLockLock)
+        {
+            if (isLocked)
+                return;
+            isLocked = true;
+            logger?.BeginScope("Start locking task");
+            Task.Run(async () =>
+            {
+                await Task.Delay(TimeSpan.FromSeconds(delay));
+                logger?.LogInformation("Locking...");
+                lockProvider.Lock();
+                // is locked will need to be cleared by a signal from SystemStateEventHandler
+                logger?.LogInformation("Locked.");
+            });
+        }
+    }
+
+    private void ShowModelessMessageBox(int delay)
+    {
+        if (messageIsVisible)
+            return;
+        lock (messageBoxLock)
+        {
+            if (messageIsVisible)
+                return;
+            messageIsVisible = true;
+            if (!MessageBoxTask.IsCompleted)
+                return;
+            MessageBoxTask = Task.Run(() =>
+            {
+                ShowLockingMessage(_disableLock, delay);
+                messageIsVisible = false;
+                Task.Delay(TimeSpan.FromSeconds(delay)).Wait();
+            });
+        }
+    }
+
+    private void ShowLockingMessage(bool disableLock, int delay)
+    {
+        if (disableLock)
+        {
+            logger?.LogWarning("ShowMessage: Locking is disabled.");
+            MessageBox.Show("Locking is disabled.", "Screen Time", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+        }
+        else
+        {
+            logger?.LogWarning("ShowMessage: Locking in {Delay} seconds...", delay);
+            MessageBox.Show($"Locking in {delay} seconds...", "Screen Time", MessageBoxButtons.OK, MessageBoxIcon.Stop);
+        }
 
     }
 
@@ -129,7 +196,7 @@ internal class HiddenForm : Form
 
     private void ShowMessage(UserMessage message)
     {
-        if (!silentMode)
+        // if (!silentMode)
         {
             icon.BalloonTipTitle = message.Title ?? string.Empty;
             icon.BalloonTipText = (message.Icon ?? string.Empty) + " " + (message.Message ?? string.Empty);

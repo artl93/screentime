@@ -17,7 +17,7 @@ namespace ScreenTimeTest
             using var _provider = new UserConfigurationProvider(_mockReader.Object, _mockTimeProvider);
 
             // Arrange
-            var expectedConfig = new UserConfiguration(Guid.NewGuid(), "test");
+            var expectedConfig = new UserConfiguration("test");
             _mockReader.Setup(r => r.GetConfiguration()).Returns(expectedConfig);
 
             // Act
@@ -31,11 +31,9 @@ namespace ScreenTimeTest
         [Fact]
         public async Task OnConfigurationChanged_EventNotTriggered()
         {
-            var guidA = Guid.Parse("07a78d36-c409-4805-8b56-e7cb2368bccf");
-            var guidB = Guid.Parse("df991e7f-12c4-4c1e-8bb6-591065103f61");
-            var configurationA = new UserConfiguration(guidA, "test");
-            var configurationB = new UserConfiguration(guidA, "test");
-            var expectedConfiguration = new UserConfiguration(guidA, "test");
+            var configurationA = new UserConfiguration("testA");
+            var configurationB = new UserConfiguration("testA");
+            var expectedConfiguration = new UserConfiguration("testA");
             var _mockReader = new MockUserConfigurationReader(configurationA);
 
             var _mockTimeProvider = new FakeTimeProvider();
@@ -59,11 +57,9 @@ namespace ScreenTimeTest
         [Fact]
         public async Task OnConfigurationChanged_EventTriggeredUsingSave()
         {
-            var guidA = Guid.Parse("07a78d36-c409-4805-8b56-e7cb2368bccf");
-            var guidB = Guid.Parse("df991e7f-12c4-4c1e-8bb6-591065103f61");
-            var configurationA = new UserConfiguration(guidA, "test");
-            var configurationB = new UserConfiguration(guidB, "test");
-            var expectedConfiguration = new UserConfiguration(guidB, "test");
+            var configurationA = new UserConfiguration("testA");
+            var configurationB = new UserConfiguration("testB");
+            var expectedConfiguration = new UserConfiguration("testB");
             var _mockReader = new MockUserConfigurationReader(configurationA);
 
             var _mockTimeProvider = new FakeTimeProvider();
@@ -91,11 +87,9 @@ namespace ScreenTimeTest
         [Fact]
         public async Task OnConfigurationChanged_EventTriggeredUsingWatcher()
         {
-            var guidA = Guid.Parse("07a78d36-c409-4805-8b56-e7cb2368bccf");
-            var guidB = Guid.Parse("df991e7f-12c4-4c1e-8bb6-591065103f61");
-            var configurationA = new UserConfiguration(guidA, "test");
-            var configurationB = new UserConfiguration(guidB, "test");
-            var expectedConfiguration = new UserConfiguration(guidB, "test");
+            var configurationA = new UserConfiguration("testA");
+            var configurationB = new UserConfiguration("testB");
+            var expectedConfiguration = new UserConfiguration("testB");
             var _mockReader = new MockUserConfigurationReader(configurationA);
 
             var _mockTimeProvider = new FakeTimeProvider();

@@ -19,5 +19,6 @@ namespace ScreenTime
         public Task RequestExtensionAsync(int minutes);
         public Task ResetAsync();
         public Task SaveCurrentConfigurationAsync();
+        public UserActivityState GetActivityState();
     }
 }

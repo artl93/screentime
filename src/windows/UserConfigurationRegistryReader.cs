@@ -23,9 +23,9 @@ namespace ScreenTime
             var extensions = JsonSerializer.Deserialize<(DateTimeOffset, int)[]>(extensionsString?.ToString() ?? "[]", serializerOptions);
             var disableLock = GetRegistryIntValue(_baseKey, "DisableLock", 0) == 1; // convert to boolean
             var delayLockSeconds = GetRegistryIntValue(_baseKey, "DelayLockSeconds", 10);
-            delayLockSeconds = Math.Max(2, delayLockSeconds); // avoid pathologically low values
+            delayLockSeconds = Math.Max(5, delayLockSeconds); // avoid pathologically low values
 
-            return new UserConfiguration(Guid.NewGuid(), Environment.UserName, dailyLimit, 
+            return new UserConfiguration(Environment.UserName, dailyLimit, 
                 warningTime, warningInterval, graceMinutes, dailyResetString, disableLock, delayLockSeconds, extensions?.ToList());
 
         }
