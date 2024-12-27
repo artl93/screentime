@@ -15,7 +15,7 @@ namespace ScreenTime
         {
             this.reader = reader;
             userConfigurationCache = reader.GetConfiguration();
-            timer = timeProvider?.CreateTimer(OnCheckForUpdates, null, TimeSpan.FromSeconds(5), TimeSpan.FromSeconds(20));
+            timer = timeProvider?.CreateTimer(OnCheckForUpdates, null, TimeSpan.FromSeconds(5), TimeSpan.FromSeconds(5));
         }
 
         private void OnCheckForUpdates(object? state)
@@ -77,7 +77,7 @@ namespace ScreenTime
             {
                 return;
             }
-            var newConfiguration = userConfigurationCache with { Extensions = null };
+            var newConfiguration = userConfigurationCache with { Extensions = [] };
             SaveUserConfigurationForDayAsync(newConfiguration).Wait();
         }
 

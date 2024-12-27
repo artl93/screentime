@@ -142,6 +142,7 @@ namespace ScreenTime
                 var delta = currentTime - nextResetDate;
                 delta = activityState == UserActivityState.Active ? delta.Add(TimeSpan.FromDays(delta.Days * -1)) : TimeSpan.FromMinutes(0);
                 nextResetDate = GetNextResetTime(TimeSpan.Parse($"{configuration.ResetTime}"));
+                userConfigurationProvider.ResetExtensions();
                 duration = delta;
                 OnDayRollover?.Invoke(this, new MessageEventArgs(new UserMessage(
                     "Day rollover",
