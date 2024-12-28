@@ -1,0 +1,6 @@
+@ScreenTimeService_HostAddress = http://localhost:5170
+
+GET {{ScreenTimeService_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
