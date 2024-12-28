@@ -38,7 +38,7 @@ namespace ScreenTimeTest
 
             var _mockTimeProvider = new FakeTimeProvider();
             using var _provider = new UserConfigurationProvider(_mockReader, _mockTimeProvider);
-            _mockTimeProvider.SetUtcNow(DateTime.Parse("00:00:00"));
+            _mockTimeProvider.SetUtcNow(DateTime.Parse("2024-12-25 00:00:00"));
 
 
             var eventTriggered = false;
@@ -64,7 +64,7 @@ namespace ScreenTimeTest
 
             var _mockTimeProvider = new FakeTimeProvider();
             using var _provider = new UserConfigurationProvider(_mockReader, _mockTimeProvider);
-            _mockTimeProvider.SetUtcNow(DateTime.Parse("00:00:00"));
+            _mockTimeProvider.SetUtcNow(DateTime.Parse("2024-12-25 00:00:00"));
 
             // Arrange
 
@@ -94,7 +94,7 @@ namespace ScreenTimeTest
 
             var _mockTimeProvider = new FakeTimeProvider();
             using var _provider = new UserConfigurationProvider(_mockReader, _mockTimeProvider);
-            _mockTimeProvider.SetUtcNow(DateTime.Parse("00:00:00"));
+            _mockTimeProvider.SetUtcNow(DateTime.Parse("2024-12-25 00:00:00"));
 
             // Arrange
 

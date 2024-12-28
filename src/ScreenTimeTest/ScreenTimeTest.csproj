@@ -17,7 +17,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\windows\ScreenTime.csproj" />
+    <ProjectReference Include="..\ScreenTimeClient\ScreenTimeClient.csproj" />
   </ItemGroup>
 
   <ItemGroup>

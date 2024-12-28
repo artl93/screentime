@@ -3,11 +3,11 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.5.002.0
 MinimumVisualStudioVersion = 10.0.40219.1
-
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ScreenTimeTest", "src\ScreenTimeTest\ScreenTimeTest.csproj", "{D4E8F8A2-5B2A-4D3A-8E6F-9A1C2B3D4E5F}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ScreenTimeClient", "src\ScreenTimeClient\ScreenTimeClient.csproj", "{C8F5B159-EE59-4DF2-AE4F-F29720D2C411}"
 EndProject
-
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ScreenTime", "src\windows\ScreenTime.csproj", "{88C2F466-003F-475A-BDC2-47D009727F62}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ScreenTimeServiceLegacy", "src\ScreenTimeServiceLegacy\ScreenTimeServiceLegacy.csproj", "{EDBFCD42-DF29-4EF1-A71E-7CA2F99D6BD2}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ScreenTimeTest", "src\ScreenTimeTest\ScreenTimeTest.csproj", "{723DBE42-FDB4-09D1-B381-2B18C4E0C02D}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -15,18 +15,27 @@ Global
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{88C2F466-003F-475A-BDC2-47D009727F62}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{88C2F466-003F-475A-BDC2-47D009727F62}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{88C2F466-003F-475A-BDC2-47D009727F62}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{88C2F466-003F-475A-BDC2-47D009727F62}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C8F5B159-EE59-4DF2-AE4F-F29720D2C411}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C8F5B159-EE59-4DF2-AE4F-F29720D2C411}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C8F5B159-EE59-4DF2-AE4F-F29720D2C411}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C8F5B159-EE59-4DF2-AE4F-F29720D2C411}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C56AAC5D-06FD-4A69-8F2A-B664C205A523}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C56AAC5D-06FD-4A69-8F2A-B664C205A523}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C56AAC5D-06FD-4A69-8F2A-B664C205A523}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C56AAC5D-06FD-4A69-8F2A-B664C205A523}.Release|Any CPU.Build.0 = Release|Any CPU
+		{EDBFCD42-DF29-4EF1-A71E-7CA2F99D6BD2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{EDBFCD42-DF29-4EF1-A71E-7CA2F99D6BD2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{EDBFCD42-DF29-4EF1-A71E-7CA2F99D6BD2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{EDBFCD42-DF29-4EF1-A71E-7CA2F99D6BD2}.Release|Any CPU.Build.0 = Release|Any CPU
+		{723DBE42-FDB4-09D1-B381-2B18C4E0C02D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{723DBE42-FDB4-09D1-B381-2B18C4E0C02D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{723DBE42-FDB4-09D1-B381-2B18C4E0C02D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{723DBE42-FDB4-09D1-B381-2B18C4E0C02D}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
-	GlobalSection(NestedProjects) = preSolution
-		{88C2F466-003F-475A-BDC2-47D009727F62} = {3F61D289-4265-409B-A1B2-AF5E773F0D8B}
-	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
-		SolutionGuid = {0DD16D52-E138-4B45-A562-B30B39F62FF2}
+		SolutionGuid = {2B0B270B-AAFB-4369-AAF3-38E4C2E5DAC2}
 	EndGlobalSection
 EndGlobal
