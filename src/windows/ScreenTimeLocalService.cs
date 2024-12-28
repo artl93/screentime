@@ -53,12 +53,14 @@ namespace ScreenTime
             {
                 lastKnownTime = _timeProvider.GetUtcNow();
                 duration = TimeSpan.Zero;
+                userConfigurationProvider.ResetExtensions();
             }
             // if it has been more than 24 hours since the last reset, reset the duration
             else if (lastKnownTime.UtcDateTime <= nextResetDate.AddDays(-1) || duration >= TimeSpan.FromDays(1))
             {
                 duration = TimeSpan.Zero;
                 lastKnownTime = _timeProvider.GetUtcNow();
+                userConfigurationProvider.ResetExtensions();
             }
             if (activityState != UserActivityState.Active)
             {
@@ -182,7 +184,11 @@ namespace ScreenTime
             if (configuration == null)
                 return;
             var status = GetUserStatus();
-            OnUserStatusChanged?.Invoke(this, new UserStatusEventArgs(status, _timeProvider.GetUtcNow(), duration));
+            if (currentUserStatus != status)
+            {
+                currentUserStatus = status;
+                OnUserStatusChanged?.Invoke(this, new UserStatusEventArgs(currentUserStatus, _timeProvider.GetUtcNow(), duration));
+            }
         }
 
 
@@ -327,6 +333,7 @@ namespace ScreenTime
         }
 
         TimeSpan idleTimeLast = TimeSpan.Zero;
+        private UserStatus? currentUserStatus;
 
         void UpdateIdleTime()
         {
@@ -367,6 +374,7 @@ namespace ScreenTime
         public void ExtensionGrantedNotification(int minutes)
         {
             logger?.LogWarning("Extension granted for {Minutes} minutes.", minutes);
+            PostStatusChanges();
             OnMessageUpdate?.Invoke(this, new MessageEventArgs(new UserMessage(
                 "Extension granted",
                 $"Extension granted for {minutes} minutes. But seriously, touch grass.",
