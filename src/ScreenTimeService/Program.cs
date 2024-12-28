@@ -369,7 +369,3 @@ async Task<TimeSpan> GetTimeInteractiveTodayAsync(string name, UserContext db, D
 
 app.Run();
 
-record UserMessage(string Title, string Message, string Icon, string Action);
-record UserStatus(TimeSpan LoggedInTime, string Icon, string Action, Status Status, TimeSpan dailyTimeLimit);
-enum Status { Okay, Warn, Error, Lock }
-
