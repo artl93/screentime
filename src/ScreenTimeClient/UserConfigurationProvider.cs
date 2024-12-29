@@ -53,7 +53,7 @@ namespace ScreenTime
                     OnConfigurationChanged?.Invoke(this, new(this, configuration));
                     userConfigurationCache = configuration;
                 }
-            });
+            }).ConfigureAwait(false);
         }
 
         protected virtual void Dispose(bool disposing)
