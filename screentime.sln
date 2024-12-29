@@ -9,9 +9,9 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ScreenTimeServiceLegacy", "
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ScreenTimeTest", "src\ScreenTimeTest\ScreenTimeTest.csproj", "{723DBE42-FDB4-09D1-B381-2B18C4E0C02D}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ScreenTimeService", "ScreenTimeService\ScreenTimeService.csproj", "{C6D92DBD-6494-4BB9-8A1E-FEC05C121411}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ScreenTimeService", "src\ScreenTimeService\ScreenTimeService.csproj", "{C6D92DBD-6494-4BB9-8A1E-FEC05C121411}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ScreenTimeWebApp", "ScreenTimeWebApp\ScreenTimeWebApp.csproj", "{74824E5D-D706-4B15-8FAC-519481DFD92F}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ScreenTimeWebApp", "src\ScreenTimeWebApp\ScreenTimeWebApp.csproj", "{74824E5D-D706-4B15-8FAC-519481DFD92F}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
