@@ -5,11 +5,13 @@ using Microsoft.Identity.Client.Extensions.Msal;
 using Microsoft.Win32;
 using ScreenTime;
 using System.Diagnostics;
+using System.Net.Http.Headers;
 
 internal class HiddenForm : Form
 {
     private readonly NotifyIcon icon;
     private ToolStripItem usernameItem;
+    private readonly HttpClient httpClient;
     private readonly ILogger? logger;
     private readonly IUserConfigurationProvider _userConfigurationProvider;
     private bool messageIsVisible = false;
@@ -22,8 +24,10 @@ internal class HiddenForm : Form
     public HiddenForm(IScreenTimeStateClient client,
         SystemLockStateService lockProvider,
         IUserConfigurationProvider userConfigurationProvider,
+        HttpClient httpClient,
         ILogger? logger)
     {
+        this.httpClient = httpClient;
         this.logger = logger;
         _userConfigurationProvider = userConfigurationProvider;
         var result = _userConfigurationProvider.GetUserConfigurationForDayAsync().Result;
@@ -106,10 +110,11 @@ internal class HiddenForm : Form
         };
         client.OnTimeUpdate += (s, e) => UpdateTooltip(e.Status);
 
+        var app = GetClientApp();
         var account = GetClientApp().GetAccountsAsync().GetAwaiter().GetResult().FirstOrDefault();
         if (account != null)
         {
-            UpdateForLogin(account);
+            UpdateForLogin(account, "");
         }
         else
         {
@@ -126,13 +131,17 @@ internal class HiddenForm : Form
         usernameItem.Visible = false;
     }
 
-    private void UpdateForLogin(IAccount account)
+    private void UpdateForLogin(IAccount account, string token)
     {
         preLoginItemsList.ForEach(i => i.Visible = false);
         postLoginItemsList.ForEach(i => i.Visible = true);
         ShowMessage(new UserMessage("Logged in", $"You are logged in as {account.Username}.", "🔒", "Okay"));
         usernameItem.Visible = true;
         usernameItem.Text = $"Signed in: ({account.Username}) 🔒";
+        this.httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        // httpClient.DefaultRequestHeaders.Add("User-Agent", "ScreenTime-taskbar-client");
+        // var result = httpClient.GetAsync("https://graph.microsoft.com/v1.0/me").GetAwaiter().GetResult();
+        var result = httpClient.GetAsync("https://localhost:7115/weatherforecast").GetAwaiter().GetResult();
     }
 
     private IPublicClientApplication GetClientApp()
@@ -140,10 +149,12 @@ internal class HiddenForm : Form
         if (_publicClientApp == null)
         {
             _publicClientApp = PublicClientApplicationBuilder
-                .Create("b1982a95-6b93-46ca-844c-f0594227e2d7")
-                .WithAuthority("https://login.microsoftonline.com/common")
+                // .Create("b1982a95-6b93-46ca-844c-f0594227e2d7")
+                .Create("4eb97520-4902-4817-ab35-ae38739253ba")
+                .WithClientId("b1982a95-6b93-46ca-844c-f0594227e2d7")
+                .WithAuthority("https://login.microsoftonline.com/4eb97520-4902-4817-ab35-ae38739253ba/")
                 .WithDefaultRedirectUri()
-                .WithClientName("ScreenTime taskbar client")
+                .WithClientName("ScreenTime-taskbar-client")
                 .WithClientVersion(System.Reflection.Assembly.GetExecutingAssembly().GetName().Version.ToString())
                 .Build();
             MsalCacheHelper cacheHelper = CreateCacheHelperAsync().GetAwaiter().GetResult();
@@ -160,7 +171,9 @@ internal class HiddenForm : Form
         var app = GetClientApp();
 
         var accounts = app.GetAccountsAsync().GetAwaiter().GetResult();
-        var scopes = new string[] { "user.read" };
+        var scopes = new string[] { 
+            // "user.read", 
+            "api://b1982a95-6b93-46ca-844c-f0594227e2d7/access_as_user" };
         AuthenticationResult result;
 
         try
@@ -174,13 +187,12 @@ internal class HiddenForm : Form
             logger?.LogInformation("Login result: {Result}", result);
             if (result != null && !string.IsNullOrEmpty(result.AccessToken))
             {
-                UpdateForLogin(result.Account);
+                UpdateForLogin(result.Account, result.AccessToken);
             }
         }
         catch (Exception e)
         {
             logger?.LogError(e, "Login error: {Message}", e.Message);
-            // result = _publicClientApp.AcquireTokenInteractive(scopes).ExecuteAsync().GetAwaiter().GetResult();
         }
 
 

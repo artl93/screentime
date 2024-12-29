@@ -54,6 +54,7 @@ static class Program
                     sp.GetRequiredService<IScreenTimeStateClient>(),
                     sp.GetRequiredService<SystemLockStateService>(),
                     sp.GetRequiredService<IUserConfigurationProvider>(),
+                    sp.GetRequiredService<HttpClient>(),
                     sp.GetRequiredService<ILogger<HiddenForm>>()));
             });
             
