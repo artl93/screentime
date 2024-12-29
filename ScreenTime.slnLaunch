@@ -1,0 +1,20 @@
+[
+  {
+    "Name": "Everything",
+    "Projects": [
+      {
+        "Path": "src\\ScreenTimeClient\\ScreenTimeClient.csproj",
+        "Action": "Start",
+        "DebugTarget": "local"
+      },
+      {
+        "Path": "src\\ScreenTimeService\\ScreenTimeService.csproj",
+        "Action": "Start"
+      },
+      {
+        "Path": "src\\ScreenTimeWebApp\\ScreenTimeWebApp.csproj",
+        "Action": "Start"
+      }
+    ]
+  }
+]
