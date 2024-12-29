@@ -11,6 +11,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ScreenTimeTest", "src\Scree
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ScreenTimeService", "ScreenTimeService\ScreenTimeService.csproj", "{C6D92DBD-6494-4BB9-8A1E-FEC05C121411}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ScreenTimeWebApp", "ScreenTimeWebApp\ScreenTimeWebApp.csproj", "{74824E5D-D706-4B15-8FAC-519481DFD92F}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -33,6 +35,10 @@ Global
 		{C6D92DBD-6494-4BB9-8A1E-FEC05C121411}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{C6D92DBD-6494-4BB9-8A1E-FEC05C121411}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{C6D92DBD-6494-4BB9-8A1E-FEC05C121411}.Release|Any CPU.Build.0 = Release|Any CPU
+		{74824E5D-D706-4B15-8FAC-519481DFD92F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{74824E5D-D706-4B15-8FAC-519481DFD92F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{74824E5D-D706-4B15-8FAC-519481DFD92F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{74824E5D-D706-4B15-8FAC-519481DFD92F}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
