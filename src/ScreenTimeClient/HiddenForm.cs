@@ -1,21 +1,27 @@
 ﻿
 using Microsoft.Extensions.Logging;
+using Microsoft.Identity.Client;
+using Microsoft.Identity.Client.Extensions.Msal;
 using Microsoft.Win32;
 using ScreenTime;
+using System.Diagnostics;
 
 internal class HiddenForm : Form
 {
     private readonly NotifyIcon icon;
+    private ToolStripItem usernameItem;
     private readonly ILogger? logger;
     private readonly IUserConfigurationProvider _userConfigurationProvider;
     private bool messageIsVisible = false;
     // private bool silentMode = false;
     private bool _disableLock;
     private int _lockDelaySeconds;
+    private List<ToolStripItem> preLoginItemsList = new();
+    private List<ToolStripItem> postLoginItemsList = new();
 
-    public HiddenForm(IScreenTimeStateClient client, 
-        SystemLockStateService lockProvider, 
-        IUserConfigurationProvider userConfigurationProvider, 
+    public HiddenForm(IScreenTimeStateClient client,
+        SystemLockStateService lockProvider,
+        IUserConfigurationProvider userConfigurationProvider,
         ILogger? logger)
     {
         this.logger = logger;
@@ -55,9 +61,14 @@ internal class HiddenForm : Form
             ContextMenuStrip = new ContextMenuStrip()
         };
         // icon.ContextMenuStrip.Items.Add("Reset", null, (s, e) => { client.Reset(); });
-        icon.ContextMenuStrip.Items.Add("Request 5 minute extension", null, async (s, e) => { await client.RequestExtensionAsync(5); });
-        icon.ContextMenuStrip.Items.Add("Request 15 minute extension", null, async (s, e) => { await client.RequestExtensionAsync(15); });
-        icon.ContextMenuStrip.Items.Add("Request 60 minute extension", null, async (s, e) => { await client.RequestExtensionAsync(60); });
+        usernameItem = icon.ContextMenuStrip.Items.Add("Username", null);
+        usernameItem.Visible = false;
+        preLoginItemsList.Add(icon.ContextMenuStrip.Items.Add("Login...", null, (s, e) => { DoLogin(); }));
+        postLoginItemsList.Add(icon.ContextMenuStrip.Items.Add("Request 5 minute extension", null, async (s, e) => { await client.RequestExtensionAsync(5); }));
+        postLoginItemsList.Add(icon.ContextMenuStrip.Items.Add("Request 15 minute extension", null, async (s, e) => { await client.RequestExtensionAsync(15); }));
+        postLoginItemsList.Add(icon.ContextMenuStrip.Items.Add("Request 60 minute extension", null, async (s, e) => { await client.RequestExtensionAsync(60); }));
+        postLoginItemsList.Add(icon.ContextMenuStrip.Items.Add("Logout...", null, (s, e) => { DoLogout(); }));
+
         //icon.ContextMenuStrip.Items.Add("Exit", null, (s, e) => 
         //{
         //    logger?.LogCritical($"Silent mode enabled by: {Environment.UserName} because they hit \"Exit\"");
@@ -71,7 +82,7 @@ internal class HiddenForm : Form
         {
             logger?.LogWarning("Message update: {Message}", e.Message.Message);
             ShowMessage(e.Message);
-        } ;
+        };
         client.OnUserStatusChanged += (s, e) =>
         {
             logger?.LogWarning("User status changed: {State} - {LoggedInTime}", Enum.GetName(e.Status.State), e.Status.LoggedInTime);
@@ -95,6 +106,111 @@ internal class HiddenForm : Form
         };
         client.OnTimeUpdate += (s, e) => UpdateTooltip(e.Status);
 
+        var account = GetClientApp().GetAccountsAsync().GetAwaiter().GetResult().FirstOrDefault();
+        if (account != null)
+        {
+            UpdateForLogin(account);
+        }
+        else
+        {
+            UpdateForLogout();
+        }
+
+    }
+
+    private void UpdateForLogout()
+    {
+        preLoginItemsList.ForEach(i => i.Visible = true);
+        postLoginItemsList.ForEach(i => i.Visible = false);
+        ShowMessage(new UserMessage("Not logged in", "You are not logged in.", "🔓", "Okay"));
+        usernameItem.Visible = false;
+    }
+
+    private void UpdateForLogin(IAccount account)
+    {
+        preLoginItemsList.ForEach(i => i.Visible = false);
+        postLoginItemsList.ForEach(i => i.Visible = true);
+        ShowMessage(new UserMessage("Logged in", $"You are logged in as {account.Username}.", "🔒", "Okay"));
+        usernameItem.Visible = true;
+        usernameItem.Text = $"Signed in: ({account.Username}) 🔒";
+    }
+
+    private IPublicClientApplication GetClientApp()
+    {
+        if (_publicClientApp == null)
+        {
+            _publicClientApp = PublicClientApplicationBuilder
+                .Create("b1982a95-6b93-46ca-844c-f0594227e2d7")
+                .WithAuthority("https://login.microsoftonline.com/common")
+                .WithDefaultRedirectUri()
+                .WithClientName("ScreenTime taskbar client")
+                .WithClientVersion(System.Reflection.Assembly.GetExecutingAssembly().GetName().Version.ToString())
+                .Build();
+            MsalCacheHelper cacheHelper = CreateCacheHelperAsync().GetAwaiter().GetResult();
+
+            // Let the cache helper handle MSAL's cache, otherwise the user will be prompted to sign-in every time.
+            cacheHelper.RegisterCache(_publicClientApp.UserTokenCache);
+        }
+        return _publicClientApp;
+    }
+
+    private void DoLogin()
+    {
+
+        var app = GetClientApp();
+
+        var accounts = app.GetAccountsAsync().GetAwaiter().GetResult();
+        var scopes = new string[] { "user.read" };
+        AuthenticationResult result;
+
+        try
+        {
+            if (accounts.Count() != 0)
+                result = app.AcquireTokenSilent(scopes, accounts.FirstOrDefault())
+                  .ExecuteAsync().GetAwaiter().GetResult();
+            else 
+                result = app.AcquireTokenInteractive(scopes).ExecuteAsync().GetAwaiter().GetResult();
+
+            logger?.LogInformation("Login result: {Result}", result);
+            if (result != null && !string.IsNullOrEmpty(result.AccessToken))
+            {
+                UpdateForLogin(result.Account);
+            }
+        }
+        catch (Exception e)
+        {
+            logger?.LogError(e, "Login error: {Message}", e.Message);
+            // result = _publicClientApp.AcquireTokenInteractive(scopes).ExecuteAsync().GetAwaiter().GetResult();
+        }
+
+
+    }
+
+    private void DoLogout()
+    {
+        var app = GetClientApp();
+        var accounts = app.GetAccountsAsync().GetAwaiter().GetResult();
+        foreach (var account in accounts)
+        {
+            app.RemoveAsync(account).GetAwaiter().GetResult();
+        }
+        UpdateForLogout();
+    }
+
+    private static async Task<MsalCacheHelper> CreateCacheHelperAsync()
+    {
+        // Since this is a WPF application, only Windows storage is configured
+        var storageProperties = new StorageCreationPropertiesBuilder(
+                          System.Reflection.Assembly.GetExecutingAssembly().GetName().Name + ".msalcache.bin",
+                          MsalCacheHelper.UserRootDirectory)
+                            .Build();
+
+        MsalCacheHelper cacheHelper = await MsalCacheHelper.CreateAsync(
+                    storageProperties,
+                    new TraceSource("MSAL.CacheTrace"))
+                 .ConfigureAwait(false);
+
+        return cacheHelper;
     }
 
     private void SystemEvents_SessionSwitch(object sender, SessionSwitchEventArgs e)
@@ -106,6 +222,7 @@ internal class HiddenForm : Form
     private readonly Lock screenLockLock = new();
     private bool isLocked = false;
     private Task MessageBoxTask = Task.CompletedTask;
+    private IPublicClientApplication? _publicClientApp;
 
     private void HandleLocking(SystemLockStateService lockProvider)
     {
