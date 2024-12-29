@@ -67,10 +67,10 @@ internal class HiddenForm : Form
         // icon.ContextMenuStrip.Items.Add("Reset", null, (s, e) => { client.Reset(); });
         usernameItem = icon.ContextMenuStrip.Items.Add("Username", null);
         usernameItem.Visible = false;
-        preLoginItemsList.Add(icon.ContextMenuStrip.Items.Add("Login...", null, (s, e) => { DoLogin(); }));
-        postLoginItemsList.Add(icon.ContextMenuStrip.Items.Add("Request 5 minute extension", null, async (s, e) => { await client.RequestExtensionAsync(5); }));
-        postLoginItemsList.Add(icon.ContextMenuStrip.Items.Add("Request 15 minute extension", null, async (s, e) => { await client.RequestExtensionAsync(15); }));
-        postLoginItemsList.Add(icon.ContextMenuStrip.Items.Add("Request 60 minute extension", null, async (s, e) => { await client.RequestExtensionAsync(60); }));
+        preLoginItemsList.Add(icon.ContextMenuStrip.Items.Add("Login...", null, async (s, e) => { await DoLoginAsync(); }));
+        postLoginItemsList.Add(icon.ContextMenuStrip.Items.Add("Request 5 minute extension", null, async (s, e) => { await RequestExtensionAsync(5); }));
+        postLoginItemsList.Add(icon.ContextMenuStrip.Items.Add("Request 15 minute extension", null, async (s, e) => { await RequestExtensionAsync(15); }));
+        postLoginItemsList.Add(icon.ContextMenuStrip.Items.Add("Request 60 minute extension", null, async (s, e) => { await RequestExtensionAsync(60); }));
         postLoginItemsList.Add(icon.ContextMenuStrip.Items.Add("Logout...", null, (s, e) => { DoLogout(); }));
 
         //icon.ContextMenuStrip.Items.Add("Exit", null, (s, e) => 
@@ -123,6 +123,11 @@ internal class HiddenForm : Form
 
     }
 
+    private async Task RequestExtensionAsync(int v)
+    {
+        await this.httpClient.PutAsync($"https://localhost:7115/request/{v}", null);
+    }
+
     private void UpdateForLogout()
     {
         preLoginItemsList.ForEach(i => i.Visible = true);
@@ -140,8 +145,9 @@ internal class HiddenForm : Form
         usernameItem.Text = $"Signed in: ({account.Username}) 🔒";
         this.httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
         // httpClient.DefaultRequestHeaders.Add("User-Agent", "ScreenTime-taskbar-client");
-        // var result = httpClient.GetAsync("https://graph.microsoft.com/v1.0/me").GetAwaiter().GetResult();
-        var result = httpClient.GetAsync("https://localhost:7115/weatherforecast").GetAwaiter().GetResult();
+        var result = httpClient.GetAsync("https://localhost:7115/request/5").GetAwaiter().GetResult();
+        result = httpClient.PutAsync("https://localhost:7115/request/5", null).GetAwaiter().GetResult();
+        // result = httpClient.GetAsync("https://graph.microsoft.com/v1.0/me").GetAwaiter().GetResult();
     }
 
     private IPublicClientApplication GetClientApp()
@@ -165,24 +171,21 @@ internal class HiddenForm : Form
         return _publicClientApp;
     }
 
-    private void DoLogin()
+    private async Task DoLoginAsync()
     {
 
         var app = GetClientApp();
 
-        var accounts = app.GetAccountsAsync().GetAwaiter().GetResult();
-        var scopes = new string[] { 
-            // "user.read", 
-            "api://b1982a95-6b93-46ca-844c-f0594227e2d7/access_as_user" };
+        var accounts = await app.GetAccountsAsync();
+        var scopes = new string[] { "user.read", "api://b1982a95-6b93-46ca-844c-f0594227e2d7/access_as_user" };
         AuthenticationResult result;
 
         try
         {
             if (accounts.Count() != 0)
-                result = app.AcquireTokenSilent(scopes, accounts.FirstOrDefault())
-                  .ExecuteAsync().GetAwaiter().GetResult();
+                result = await app.AcquireTokenSilent(scopes, accounts.FirstOrDefault()).ExecuteAsync();
             else 
-                result = app.AcquireTokenInteractive(scopes).ExecuteAsync().GetAwaiter().GetResult();
+                result = await app.AcquireTokenInteractive(scopes).ExecuteAsync();
 
             logger?.LogInformation("Login result: {Result}", result);
             if (result != null && !string.IsNullOrEmpty(result.AccessToken))
