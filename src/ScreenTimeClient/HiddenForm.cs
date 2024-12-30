@@ -125,7 +125,7 @@ internal class HiddenForm : Form
 
     private async Task RequestExtensionAsync(int v)
     {
-        await this.httpClient.PutAsync($"https://localhost:7115/request/{v}", null);
+         var result = await this.httpClient.PutAsync($"https://localhost:7115/request/{v}", null);
     }
 
     private void UpdateForLogout()
