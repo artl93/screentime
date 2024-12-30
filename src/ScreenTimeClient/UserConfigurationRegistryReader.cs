@@ -23,10 +23,11 @@ namespace ScreenTime
             var extensions = JsonSerializer.Deserialize<(DateTimeOffset, int)[]>(extensionsString?.ToString() ?? "[]", serializerOptions);
             var disableLock = GetRegistryIntValue(_baseKey, "DisableLock", 0) == 1; // convert to boolean
             var delayLockSeconds = GetRegistryIntValue(_baseKey, "DelayLockSeconds", 10);
+            var enableOnline = GetRegistryIntValue(_baseKey, "EnableOnline", 0) == 1; // convert to boolean
             delayLockSeconds = Math.Max(5, delayLockSeconds); // avoid pathologically low values
 
             return new UserConfiguration(Environment.UserName, dailyLimit, 
-                warningTime, warningInterval, graceMinutes, dailyResetString, disableLock, delayLockSeconds, extensions?.ToList());
+                warningTime, warningInterval, graceMinutes, dailyResetString, disableLock, delayLockSeconds, enableOnline, extensions?.ToList());
 
         }
 
@@ -39,7 +40,8 @@ namespace ScreenTime
             Registry.SetValue(_baseKey, "DailyResetTime", configuration.ResetTime);
             Registry.SetValue(_baseKey, "DisableLock", configuration.DisableLock ? 1 : 0); // convert to int
             Registry.SetValue(_baseKey, "DelayLockSeconds", configuration.DelayLockSeconds);
-            Registry.SetValue(_baseKey, "Extensions", System.Text.Json.JsonSerializer.Serialize(configuration?.Extensions, serializerOptions));
+            Registry.SetValue(_baseKey, "EnableOnline", configuration.EnableOnline ? 1 : 0); // convert to int
+            Registry.SetValue(_baseKey, "Extensions", System.Text.Json.JsonSerializer.Serialize(configuration.Extensions, serializerOptions));
         }
 
         private static int GetRegistryIntValue(string key, string valueName, int defaultValue)

@@ -15,6 +15,7 @@ internal class HiddenForm : Form
     private bool messageIsVisible = false;
     // private bool silentMode = false;
     private bool _disableLock;
+    private bool _enableOnline;
     private int _lockDelaySeconds;
     private List<ToolStripItem> preLoginItemsList = new();
     private List<ToolStripItem> postLoginItemsList = new();
@@ -28,11 +29,13 @@ internal class HiddenForm : Form
         _userConfigurationProvider = userConfigurationProvider;
         var result = _userConfigurationProvider.GetUserConfigurationForDayAsync().Result;
         _disableLock = result.DisableLock;
+        _enableOnline = result.EnableOnline;
         _lockDelaySeconds = result.DelayLockSeconds;
         _userConfigurationProvider.OnConfigurationChanged += (s, e) =>
         {
             _disableLock = e.Configuration.DisableLock;
             _lockDelaySeconds = e.Configuration.DelayLockSeconds;
+            _enableOnline = e.Configuration.EnableOnline;
             logger?.LogInformation("Lock {State} by configuration. Delay {Seconds}.", _disableLock ? "disabled" : "enabled", _lockDelaySeconds);
         };
         logger?.LogInformation("Lock {State} by configuration. Delay {Seconds}", _disableLock ? "disabled" : "enabled", _lockDelaySeconds);
@@ -60,14 +63,25 @@ internal class HiddenForm : Form
             Icon = SystemIcons.Application,
             ContextMenuStrip = new ContextMenuStrip()
         };
-        // icon.ContextMenuStrip.Items.Add("Reset", null, (s, e) => { client.Reset(); });
-        usernameItem = icon.ContextMenuStrip.Items.Add("Username", null);
-        usernameItem.Visible = false;
-        preLoginItemsList.Add(icon.ContextMenuStrip.Items.Add("Login...", null, (s, e) => { DoLogin(); }));
-        postLoginItemsList.Add(icon.ContextMenuStrip.Items.Add("Request 5 minute extension", null, async (s, e) => { await client.RequestExtensionAsync(5); }));
-        postLoginItemsList.Add(icon.ContextMenuStrip.Items.Add("Request 15 minute extension", null, async (s, e) => { await client.RequestExtensionAsync(15); }));
-        postLoginItemsList.Add(icon.ContextMenuStrip.Items.Add("Request 60 minute extension", null, async (s, e) => { await client.RequestExtensionAsync(60); }));
-        postLoginItemsList.Add(icon.ContextMenuStrip.Items.Add("Logout...", null, (s, e) => { DoLogout(); }));
+
+        if (!_enableOnline)
+        {
+            logger?.LogInformation("Online mode disabled.");
+            icon.ContextMenuStrip.Items.Add("Request 5 minute extension", null, async (s, e) => { await client.RequestExtensionAsync(5); });
+            icon.ContextMenuStrip.Items.Add("Request 15 minute extension", null, async (s, e) => { await client.RequestExtensionAsync(15); });
+            icon.ContextMenuStrip.Items.Add("Request 60 minute extension", null, async (s, e) => { await client.RequestExtensionAsync(60); });
+        }
+        else
+        {
+            logger?.LogInformation("Online mode enabled.");
+            usernameItem = icon.ContextMenuStrip.Items.Add("Username", null);
+            usernameItem.Visible = false;
+            preLoginItemsList.Add(icon.ContextMenuStrip.Items.Add("Login...", null, (s, e) => { DoLogin(); }));
+            postLoginItemsList.Add(icon.ContextMenuStrip.Items.Add("Request 5 minute extension", null, async (s, e) => { await client.RequestExtensionAsync(5); }));
+            postLoginItemsList.Add(icon.ContextMenuStrip.Items.Add("Request 15 minute extension", null, async (s, e) => { await client.RequestExtensionAsync(15); }));
+            postLoginItemsList.Add(icon.ContextMenuStrip.Items.Add("Request 60 minute extension", null, async (s, e) => { await client.RequestExtensionAsync(60); }));
+            postLoginItemsList.Add(icon.ContextMenuStrip.Items.Add("Logout...", null, (s, e) => { DoLogout(); }));
+        }
 
         //icon.ContextMenuStrip.Items.Add("Exit", null, (s, e) => 
         //{
@@ -106,16 +120,18 @@ internal class HiddenForm : Form
         };
         client.OnTimeUpdate += (s, e) => UpdateTooltip(e.Status);
 
-        var account = GetClientApp().GetAccountsAsync().GetAwaiter().GetResult().FirstOrDefault();
-        if (account != null)
+        if (_enableOnline)
         {
-            UpdateForLogin(account);
+            var account = GetClientApp().GetAccountsAsync().GetAwaiter().GetResult().FirstOrDefault();
+            if (account != null)
+            {
+                UpdateForLogin(account);
+            }
+            else
+            {
+                UpdateForLogout();
+            }
         }
-        else
-        {
-            UpdateForLogout();
-        }
-
     }
 
     private void UpdateForLogout()
