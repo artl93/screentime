@@ -80,9 +80,11 @@ namespace ScreenTimeTest
             var mockUserConfiguration = new UserConfiguration("test", ResetTime: resetTime);
             Moq.Mock<IUserConfigurationProvider> mockUserConfigurationProvider = new();
             mockUserConfigurationProvider.Setup(m => m.GetUserConfigurationForDayAsync()).ReturnsAsync(mockUserConfiguration);
+            Moq.Mock<IIdleTimeDetector> mockIdleTimeDetector = new();
+            mockIdleTimeDetector.Setup(m => m.GetIdleTime()).Returns(TimeSpan.Zero);
 
 
-            using var service = new ScreenTimeLocalService(timeProvider, mockUserConfigurationProvider.Object, userStateProvider, null);
+            using var service = new ScreenTimeLocalService(timeProvider, mockUserConfigurationProvider.Object, userStateProvider, mockIdleTimeDetector.Object, null);
             await service.StartAsync(CancellationToken.None);
             service.StartSession("test");
             timeProvider.Advance(elapsed);
@@ -149,8 +151,10 @@ namespace ScreenTimeTest
             var mockUserConfiguration = new UserConfiguration("test");
             Moq.Mock<IUserConfigurationProvider> mockUserConfigurationProvider = new();
             mockUserConfigurationProvider.Setup(m => m.GetUserConfigurationForDayAsync()).ReturnsAsync(mockUserConfiguration);
+            Moq.Mock<IIdleTimeDetector> mockIdleTimeDetector = new();
+            mockIdleTimeDetector.Setup(m => m.GetIdleTime()).Returns(TimeSpan.Zero);
 
-            using var service = new ScreenTimeLocalService(timeProvider, mockUserConfigurationProvider.Object, userStateProvider, null);
+            using var service = new ScreenTimeLocalService(timeProvider, mockUserConfigurationProvider.Object, userStateProvider, mockIdleTimeDetector.Object, null);
             await service.StartAsync(CancellationToken.None);
 
             var expectedIntermediateDuration = TimeSpan.FromMinutes(0);
@@ -198,9 +202,11 @@ namespace ScreenTimeTest
             var mockUserConfiguration = new UserConfiguration("test");
             Moq.Mock<IUserConfigurationProvider> mockUserConfigurationProvider = new();
             mockUserConfigurationProvider.Setup(m => m.GetUserConfigurationForDayAsync()).ReturnsAsync(mockUserConfiguration);
+            Moq.Mock<IIdleTimeDetector> mockIdleTimeDetector = new();
+            mockIdleTimeDetector.Setup(m => m.GetIdleTime()).Returns(TimeSpan.Zero);
 
 
-            using var service = new ScreenTimeLocalService(timeProvider, mockUserConfigurationProvider.Object, userStateProvider, null);
+            using var service = new ScreenTimeLocalService(timeProvider, mockUserConfigurationProvider.Object, userStateProvider, mockIdleTimeDetector.Object, null);
             var eventTriggered = false;
             service.OnDayRollover += (sender, args) => eventTriggered = true;
 
@@ -222,8 +228,10 @@ namespace ScreenTimeTest
             var mockUserConfiguration = new UserConfiguration("test");
             Moq.Mock<IUserConfigurationProvider> mockUserConfigurationProvider = new();
             mockUserConfigurationProvider.Setup(m => m.GetUserConfigurationForDayAsync()).ReturnsAsync(mockUserConfiguration);
+            Moq.Mock<IIdleTimeDetector> mockIdleTimeDetector = new();
+            mockIdleTimeDetector.Setup(m => m.GetIdleTime()).Returns(TimeSpan.Zero);
 
-            using var service = new ScreenTimeLocalService(timeProvider, mockUserConfigurationProvider.Object, userStateProvider, null);
+            using var service = new ScreenTimeLocalService(timeProvider, mockUserConfigurationProvider.Object, userStateProvider, mockIdleTimeDetector.Object, null);
             var eventTriggered = false;
             service.OnTimeUpdate += (sender, args) => eventTriggered = true;
             await service.StartAsync(CancellationToken.None);
@@ -243,8 +251,10 @@ namespace ScreenTimeTest
             var mockUserConfiguration = new UserConfiguration("test");
             Moq.Mock<IUserConfigurationProvider> mockUserConfigurationProvider = new();
             mockUserConfigurationProvider.Setup(m => m.GetUserConfigurationForDayAsync()).ReturnsAsync(mockUserConfiguration);
-            
-            using var service = new ScreenTimeLocalService(timeProvider, mockUserConfigurationProvider.Object, userStateProvider, null);
+            Moq.Mock<IIdleTimeDetector> mockIdleTimeDetector = new();
+            mockIdleTimeDetector.Setup(m => m.GetIdleTime()).Returns(TimeSpan.Zero);
+
+            using var service = new ScreenTimeLocalService(timeProvider, mockUserConfigurationProvider.Object, userStateProvider, mockIdleTimeDetector.Object, null);
             var eventTriggered = false;
             service.OnUserStatusChanged += (sender, args) => eventTriggered = true;
             await service.StartAsync(CancellationToken.None);
@@ -264,8 +274,10 @@ namespace ScreenTimeTest
             var mockUserConfiguration = new UserConfiguration("test");
             Moq.Mock<IUserConfigurationProvider> mockUserConfigurationProvider = new();
             mockUserConfigurationProvider.Setup(m => m.GetUserConfigurationForDayAsync()).ReturnsAsync(mockUserConfiguration);
+            Moq.Mock<IIdleTimeDetector> mockIdleTimeDetector = new();
+            mockIdleTimeDetector.Setup(m => m.GetIdleTime()).Returns(TimeSpan.Zero);
 
-            using var service = new ScreenTimeLocalService(timeProvider, mockUserConfigurationProvider.Object, userStateProvider, null);
+            using var service = new ScreenTimeLocalService(timeProvider, mockUserConfigurationProvider.Object, userStateProvider, mockIdleTimeDetector.Object, null);
             var eventTriggered = false;
             service.OnMessageUpdate += (sender, args) => eventTriggered = true;
             await service.StartAsync(CancellationToken.None);
@@ -286,8 +298,10 @@ namespace ScreenTimeTest
             var configurationB = new UserConfiguration("testB", DailyLimitMinutes: 145);
 
             UserConfigurationProvider provider = new(new MockUserConfigurationReader(configurationA), timeProvider);
+            Moq.Mock<IIdleTimeDetector> mockIdleTimeDetector = new();
+            mockIdleTimeDetector.Setup(m => m.GetIdleTime()).Returns(TimeSpan.Zero);
 
-            using var service = new ScreenTimeLocalService(timeProvider, provider, userStateProvider, null);
+            using var service = new ScreenTimeLocalService(timeProvider, provider, userStateProvider, mockIdleTimeDetector.Object, null);
             var eventTriggered = false;
             service.OnUserStatusChanged += (sender, args) => { 
                  eventTriggered = true;
@@ -316,8 +330,10 @@ namespace ScreenTimeTest
             var configurationA = new UserConfiguration("testA");
 
             UserConfigurationProvider provider = new(new MockUserConfigurationReader(configurationA), timeProvider);
+            Moq.Mock<IIdleTimeDetector> mockIdleTimeDetector = new();
+            mockIdleTimeDetector.Setup(m => m.GetIdleTime()).Returns(TimeSpan.Zero);
 
-            using var service = new ScreenTimeLocalService(timeProvider, provider, userStateProvider, null);
+            using var service = new ScreenTimeLocalService(timeProvider, provider, userStateProvider, mockIdleTimeDetector.Object, null);
             var eventTriggered = false;
             service.OnUserStatusChanged += (sender, args) => {
                 eventTriggered = true;
@@ -364,8 +380,10 @@ namespace ScreenTimeTest
             var configurationA = new UserConfiguration("testA");
 
             UserConfigurationProvider provider = new(new MockUserConfigurationReader(configurationA), timeProvider);
+            Moq.Mock<IIdleTimeDetector> mockIdleTimeDetector = new();
+            mockIdleTimeDetector.Setup(m => m.GetIdleTime()).Returns(TimeSpan.Zero);
 
-            using var service = new ScreenTimeLocalService(timeProvider, provider, userStateProvider, null);
+            using var service = new ScreenTimeLocalService(timeProvider, provider, userStateProvider, mockIdleTimeDetector.Object, null);
             var eventTriggered = false;
             service.OnUserStatusChanged += (sender, args) => {
                 eventTriggered = true;
@@ -422,9 +440,11 @@ namespace ScreenTimeTest
             UserConfiguration? configurationB;
 
             UserConfigurationProvider provider = new(new MockUserConfigurationReader(configurationA), timeProvider);
-            
+            Moq.Mock<IIdleTimeDetector> mockIdleTimeDetector = new();
+            mockIdleTimeDetector.Setup(m => m.GetIdleTime()).Returns(TimeSpan.Zero);
 
-            using (var service = new ScreenTimeLocalService(timeProvider, provider, userStateProvider, null))
+
+            using (var service = new ScreenTimeLocalService(timeProvider, provider, userStateProvider, mockIdleTimeDetector.Object, null))
             {
                 var eventTriggered = false;
                 service.OnUserStatusChanged += (sender, args) =>
@@ -469,7 +489,7 @@ namespace ScreenTimeTest
             UserConfigurationProvider provider2 = new(new MockUserConfigurationReader(configurationB), timeProvider);
 
 
-            using var service2 = new ScreenTimeLocalService(timeProvider, provider2, userStateProvider2, null);
+            using var service2 = new ScreenTimeLocalService(timeProvider, provider2, userStateProvider2, mockIdleTimeDetector.Object, null);
             await service2.StartAsync(CancellationToken.None);
             service2.StartSession("test");
             var userStatus2 = await service2.GetInteractiveTimeAsync();

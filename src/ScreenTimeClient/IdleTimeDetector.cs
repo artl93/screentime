@@ -2,7 +2,7 @@
 
 namespace ScreenTime
 {
-    public class IdleTimeDetector
+    public class IdleTimeDetector : IIdleTimeDetector
     {
 
         [StructLayout(LayoutKind.Sequential)]
@@ -15,7 +15,7 @@ namespace ScreenTime
         [DllImport("user32.dll")]
         static extern bool GetLastInputInfo(ref LASTINPUTINFO lastInputInfo);
 
-        public static TimeSpan GetIdleTime()
+        public TimeSpan GetIdleTime()
         {
             var lastInputInfo = new LASTINPUTINFO();
             lastInputInfo.cbSize = (uint)Marshal.SizeOf(lastInputInfo);

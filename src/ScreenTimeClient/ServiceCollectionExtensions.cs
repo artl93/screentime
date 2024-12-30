@@ -25,6 +25,7 @@ namespace ScreenTime
                     _ => new ScreenTimeLocalService(serviceProvider.GetRequiredService<TimeProvider>(),
                         serviceProvider.GetRequiredService<IUserConfigurationProvider>(),
                         serviceProvider.GetRequiredService<UserStateRegistryProvider>(),
+                        serviceProvider.GetRequiredService<IIdleTimeDetector>(),
                         serviceProvider.GetRequiredService<ILogger<ScreenTimeLocalService>>())
                 };
                 return client;
