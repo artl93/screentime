@@ -73,7 +73,7 @@ namespace ScreenTimeTest
             ;
 
             FakeTimeProvider timeProvider = new(start);
-            timeProvider.SetLocalTimeZone(TimeProvider.System.LocalTimeZone);
+            timeProvider.SetLocalTimeZone(TimeZoneInfo.FindSystemTimeZoneById("America/Los_Angeles"));
 
             var userStateProvider = new FakeUserStateProvider(lastKnownDate, lastDuration);
 
@@ -141,7 +141,7 @@ namespace ScreenTimeTest
                 .ToArray();
 
             FakeTimeProvider timeProvider = new();
-            timeProvider.SetLocalTimeZone(TimeProvider.System.LocalTimeZone);
+            timeProvider.SetLocalTimeZone(TimeZoneInfo.FindSystemTimeZoneById("America/Los_Angeles"));
             timeProvider.SetUtcNow(DateTimeOffset.Parse("2027/01/01 00:00 -8:00"));
 
             var userStateProvider = new FakeUserStateProvider(timeProvider);
@@ -192,7 +192,7 @@ namespace ScreenTimeTest
         {
             var start = DateTimeOffset.Parse("2024/12/14 00:00 -8:00");
             FakeTimeProvider timeProvider = new(start);
-            timeProvider.SetLocalTimeZone(TimeProvider.System.LocalTimeZone);
+            timeProvider.SetLocalTimeZone(TimeZoneInfo.FindSystemTimeZoneById("America/Los_Angeles"));
 
             var userStateProvider = new FakeUserStateProvider(start.ToString(), "00:00:00");
             var mockUserConfiguration = new UserConfiguration("test");
@@ -217,7 +217,7 @@ namespace ScreenTimeTest
         {
             var start = DateTimeOffset.Parse("2024/12/14 00:00 -8:00");
             FakeTimeProvider timeProvider = new(start);
-            timeProvider.SetLocalTimeZone(TimeProvider.System.LocalTimeZone);
+            timeProvider.SetLocalTimeZone(TimeZoneInfo.FindSystemTimeZoneById("America/Los_Angeles"));
             var userStateProvider = new FakeUserStateProvider(start.ToString(), "00:00:00");
             var mockUserConfiguration = new UserConfiguration("test");
             Moq.Mock<IUserConfigurationProvider> mockUserConfigurationProvider = new();
@@ -238,7 +238,7 @@ namespace ScreenTimeTest
         {
             var start = DateTimeOffset.Parse("2024/12/14 00:00 -8:00");
             FakeTimeProvider timeProvider = new(start);
-            timeProvider.SetLocalTimeZone(TimeProvider.System.LocalTimeZone);
+            timeProvider.SetLocalTimeZone(TimeZoneInfo.FindSystemTimeZoneById("America/Los_Angeles"));
             var userStateProvider = new FakeUserStateProvider(start.ToString(), "00:00:00");
             var mockUserConfiguration = new UserConfiguration("test");
             Moq.Mock<IUserConfigurationProvider> mockUserConfigurationProvider = new();
@@ -259,7 +259,7 @@ namespace ScreenTimeTest
         {
             var start = DateTimeOffset.Parse("2024/12/14 00:00 -8:00");
             FakeTimeProvider timeProvider = new(start);
-            timeProvider.SetLocalTimeZone(TimeProvider.System.LocalTimeZone);
+            timeProvider.SetLocalTimeZone(TimeZoneInfo.FindSystemTimeZoneById("America/Los_Angeles"));
             var userStateProvider = new FakeUserStateProvider(start.ToString(), "00:00:00");
             var mockUserConfiguration = new UserConfiguration("test");
             Moq.Mock<IUserConfigurationProvider> mockUserConfigurationProvider = new();
@@ -280,7 +280,7 @@ namespace ScreenTimeTest
         {
             var start = DateTimeOffset.Parse("2024/12/14 00:00 -8:00");
             FakeTimeProvider timeProvider = new(start);
-            timeProvider.SetLocalTimeZone(TimeProvider.System.LocalTimeZone);
+            timeProvider.SetLocalTimeZone(TimeZoneInfo.FindSystemTimeZoneById("America/Los_Angeles"));
             var userStateProvider = new FakeUserStateProvider(start.ToString(), "00:00:00");
             var configurationA = new UserConfiguration("testA");
             var configurationB = new UserConfiguration("testB", DailyLimitMinutes: 145);
@@ -311,7 +311,7 @@ namespace ScreenTimeTest
         {
             var start = DateTimeOffset.Parse("2024/12/14 00:00 -8:00");
             FakeTimeProvider timeProvider = new(start);
-            timeProvider.SetLocalTimeZone(TimeProvider.System.LocalTimeZone);
+            timeProvider.SetLocalTimeZone(TimeZoneInfo.FindSystemTimeZoneById("America/Los_Angeles"));
             var userStateProvider = new FakeUserStateProvider(start.ToString(), "00:00:00");
             var configurationA = new UserConfiguration("testA");
 
@@ -359,7 +359,7 @@ namespace ScreenTimeTest
         {
             var start = DateTimeOffset.Parse("2024/12/14 00:00 -8:00");
             FakeTimeProvider timeProvider = new(start);
-            timeProvider.SetLocalTimeZone(TimeProvider.System.LocalTimeZone);
+            timeProvider.SetLocalTimeZone(TimeZoneInfo.FindSystemTimeZoneById("America/Los_Angeles"));
             var userStateProvider = new FakeUserStateProvider(start.ToString(), "00:00:00");
             var configurationA = new UserConfiguration("testA");
 
@@ -416,7 +416,7 @@ namespace ScreenTimeTest
         {
             var start = DateTimeOffset.Parse("2024/12/14 00:00 -8:00");
             FakeTimeProvider timeProvider = new(start);
-            timeProvider.SetLocalTimeZone(TimeProvider.System.LocalTimeZone);
+            timeProvider.SetLocalTimeZone(TimeZoneInfo.FindSystemTimeZoneById("America/Los_Angeles"));
             var userStateProvider = new FakeUserStateProvider(start.ToString(), "00:00:00");
             var configurationA = new UserConfiguration("testA");
             UserConfiguration? configurationB;
