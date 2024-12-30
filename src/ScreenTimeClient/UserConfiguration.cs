@@ -11,6 +11,7 @@ namespace ScreenTime
             string ResetTime = "06:00",
             bool DisableLock = false,
             int DelayLockSeconds = 10,
+            bool EnableOnline = false,
             List<(DateTimeOffset, int)>? Extensions = null) : IEquatable<UserConfiguration>, IComparable<UserConfiguration>
     {
         public TimeSpan TotalTimeAllowed
@@ -86,6 +87,10 @@ namespace ScreenTime
                 return false;
             }
             if (DelayLockSeconds != other.DelayLockSeconds)
+            {
+                return false;
+            }
+            if (EnableOnline != other.EnableOnline)
             {
                 return false;
             }
