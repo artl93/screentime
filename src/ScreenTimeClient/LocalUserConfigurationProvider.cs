@@ -1,8 +1,12 @@
 ﻿
 
+using Microsoft.Extensions.Configuration;
+using System.Text.Json;
+
 namespace ScreenTimeClient
 {
-    public class UserConfigurationProvider : IUserConfigurationProvider, IDisposable
+
+    public class LocalUserConfigurationProvider : IUserConfigurationProvider, IDisposable
     {
         public event EventHandler<UserConfigurationEventArgs>? OnConfigurationChanged;
         public event EventHandler<UserConfigurationResponseEventArgs>? OnExtensionResponse;
@@ -11,7 +15,7 @@ namespace ScreenTimeClient
         private bool disposedValue;
         private readonly IUserConfigurationReader reader;
 
-        public UserConfigurationProvider(IUserConfigurationReader reader, TimeProvider? timeProvider = null)
+        public LocalUserConfigurationProvider(IUserConfigurationReader reader, TimeProvider? timeProvider = null)
         {
             this.reader = reader;
             userConfigurationCache = reader.GetConfiguration();

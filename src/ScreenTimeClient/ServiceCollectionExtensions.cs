@@ -35,9 +35,9 @@ namespace ScreenTimeClient
 
         public static IServiceCollection AddUserConfiguration(this IServiceCollection services)
         {
-            services.AddSingleton<IUserConfigurationProvider, UserConfigurationProvider>((sp) =>
+            services.AddSingleton<IUserConfigurationProvider, LocalUserConfigurationProvider>((sp) =>
             {
-                return new UserConfigurationProvider(
+                return new LocalUserConfigurationProvider(
                     sp.GetRequiredService<IUserConfigurationReader>(),
                     sp.GetRequiredService<TimeProvider>());
             });

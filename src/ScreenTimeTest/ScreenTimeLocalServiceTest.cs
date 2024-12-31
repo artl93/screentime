@@ -297,7 +297,7 @@ namespace ScreenTimeTest
             var configurationA = new UserConfiguration("testA");
             var configurationB = new UserConfiguration("testB", DailyLimitMinutes: 145);
 
-            UserConfigurationProvider provider = new(new MockUserConfigurationReader(configurationA), timeProvider);
+            LocalUserConfigurationProvider provider = new(new MockUserConfigurationReader(configurationA), timeProvider);
             Moq.Mock<IIdleTimeDetector> mockIdleTimeDetector = new();
             mockIdleTimeDetector.Setup(m => m.GetIdleTime()).Returns(TimeSpan.Zero);
 
@@ -329,7 +329,7 @@ namespace ScreenTimeTest
             var userStateProvider = new FakeUserStateProvider(start.ToString(), "00:00:00");
             var configurationA = new UserConfiguration("testA");
 
-            UserConfigurationProvider provider = new(new MockUserConfigurationReader(configurationA), timeProvider);
+            LocalUserConfigurationProvider provider = new(new MockUserConfigurationReader(configurationA), timeProvider);
             Moq.Mock<IIdleTimeDetector> mockIdleTimeDetector = new();
             mockIdleTimeDetector.Setup(m => m.GetIdleTime()).Returns(TimeSpan.Zero);
 
@@ -379,7 +379,7 @@ namespace ScreenTimeTest
             var userStateProvider = new FakeUserStateProvider(start.ToString(), "00:00:00");
             var configurationA = new UserConfiguration("testA");
 
-            UserConfigurationProvider provider = new(new MockUserConfigurationReader(configurationA), timeProvider);
+            LocalUserConfigurationProvider provider = new(new MockUserConfigurationReader(configurationA), timeProvider);
             Moq.Mock<IIdleTimeDetector> mockIdleTimeDetector = new();
             mockIdleTimeDetector.Setup(m => m.GetIdleTime()).Returns(TimeSpan.Zero);
 
@@ -439,7 +439,7 @@ namespace ScreenTimeTest
             var configurationA = new UserConfiguration("testA");
             UserConfiguration? configurationB;
 
-            UserConfigurationProvider provider = new(new MockUserConfigurationReader(configurationA), timeProvider);
+            LocalUserConfigurationProvider provider = new(new MockUserConfigurationReader(configurationA), timeProvider);
             Moq.Mock<IIdleTimeDetector> mockIdleTimeDetector = new();
             mockIdleTimeDetector.Setup(m => m.GetIdleTime()).Returns(TimeSpan.Zero);
 
@@ -486,7 +486,7 @@ namespace ScreenTimeTest
 
             var userStateProvider2 = new FakeUserStateProvider("2024/12/16", "08:00:00");
             Assert.NotNull(configurationB);
-            UserConfigurationProvider provider2 = new(new MockUserConfigurationReader(configurationB), timeProvider);
+            LocalUserConfigurationProvider provider2 = new(new MockUserConfigurationReader(configurationB), timeProvider);
 
 
             using var service2 = new ScreenTimeLocalService(timeProvider, provider2, userStateProvider2, mockIdleTimeDetector.Object, null);
@@ -510,7 +510,7 @@ namespace ScreenTimeTest
             var userStateProvider = new FakeUserStateProvider(start.ToString(), "00:00:00");
             var configurationA = new UserConfiguration("testA");
 
-            UserConfigurationProvider provider = new(new MockUserConfigurationReader(configurationA), timeProvider);
+            LocalUserConfigurationProvider provider = new(new MockUserConfigurationReader(configurationA), timeProvider);
             Moq.Mock<IIdleTimeDetector> mockIdleTimeDetector = new();
             mockIdleTimeDetector.Setup(m => m.GetIdleTime()).Returns(TimeSpan.Zero);
 
@@ -532,7 +532,7 @@ namespace ScreenTimeTest
             timeProvider.Advance(TimeSpan.FromHours(2));
 
 
-            UserConfigurationProvider provider2 = new(new MockUserConfigurationReader(configurationA), timeProvider);
+            LocalUserConfigurationProvider provider2 = new(new MockUserConfigurationReader(configurationA), timeProvider);
 
 
             using var service2 = new ScreenTimeLocalService(timeProvider, provider2, userStateProvider, mockIdleTimeDetector.Object, null);

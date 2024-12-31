@@ -14,7 +14,7 @@ namespace ScreenTimeTest
         {
             var _mockReader = new Mock<IUserConfigurationReader>();
             var _mockTimeProvider = new FakeTimeProvider();
-            using var _provider = new UserConfigurationProvider(_mockReader.Object, _mockTimeProvider);
+            using var _provider = new LocalUserConfigurationProvider(_mockReader.Object, _mockTimeProvider);
 
             // Arrange
             var expectedConfig = new UserConfiguration("test");
@@ -37,7 +37,7 @@ namespace ScreenTimeTest
             var _mockReader = new MockUserConfigurationReader(configurationA);
 
             var _mockTimeProvider = new FakeTimeProvider();
-            using var _provider = new UserConfigurationProvider(_mockReader, _mockTimeProvider);
+            using var _provider = new LocalUserConfigurationProvider(_mockReader, _mockTimeProvider);
             _mockTimeProvider.SetUtcNow(DateTime.Parse("2024-12-25 00:00:00"));
 
 
@@ -63,7 +63,7 @@ namespace ScreenTimeTest
             var _mockReader = new MockUserConfigurationReader(configurationA);
 
             var _mockTimeProvider = new FakeTimeProvider();
-            using var _provider = new UserConfigurationProvider(_mockReader, _mockTimeProvider);
+            using var _provider = new LocalUserConfigurationProvider(_mockReader, _mockTimeProvider);
             _mockTimeProvider.SetUtcNow(DateTime.Parse("2024-12-25 00:00:00"));
 
             // Arrange
@@ -93,7 +93,7 @@ namespace ScreenTimeTest
             var _mockReader = new MockUserConfigurationReader(configurationA);
 
             var _mockTimeProvider = new FakeTimeProvider();
-            using var _provider = new UserConfigurationProvider(_mockReader, _mockTimeProvider);
+            using var _provider = new LocalUserConfigurationProvider(_mockReader, _mockTimeProvider);
             _mockTimeProvider.SetUtcNow(DateTime.Parse("2024-12-25 00:00:00"));
 
             // Arrange
