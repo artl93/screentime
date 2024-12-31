@@ -1,4 +1,4 @@
-﻿namespace ScreenTime
+﻿namespace ScreenTimeClient
 {
     public interface IUserConfigurationReader
     {

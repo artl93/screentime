@@ -1,4 +1,4 @@
-﻿namespace ScreenTime
+﻿namespace ScreenTimeClient
 {
     public class ExtensionResponseArgs(object Sender, string Message) : EventArgs
     {

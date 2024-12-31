@@ -1,6 +1,6 @@
 ﻿using Microsoft.Win32;
 
-namespace ScreenTime
+namespace ScreenTimeClient
 {
 
     public class SystemStateEventHandlers

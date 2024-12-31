@@ -1,5 +1,5 @@
 ﻿using Xunit;
-using ScreenTime;
+using ScreenTimeClient;
 using System;
 using System.Threading.Tasks;
 using Moq;
@@ -65,7 +65,7 @@ namespace ScreenTimeTest
 
         public async Task TestGetInteractiveTime(
             string startString, string nowString, string lastKnownDate, string lastDuration, string resetTime,
-            ScreenTime.UserState expectedStatus, string expectedDuration)
+            UserState expectedStatus, string expectedDuration)
         {
             var start = DateTimeOffset.Parse(startString);
             var now = DateTimeOffset.Parse(nowString);
@@ -135,7 +135,7 @@ namespace ScreenTimeTest
             UserState.Lock, "01:05:00")]
         public async Task TestGetInteractiveTimeSequences(
             string[] periodsArray,
-            ScreenTime.UserState expectedStatus, string expectedDuration)
+            UserState expectedStatus, string expectedDuration)
         {
             var periods = periodsArray
                 .Select(p => p.Split(','))
@@ -535,17 +535,14 @@ namespace ScreenTimeTest
             UserConfigurationProvider provider2 = new(new MockUserConfigurationReader(configurationA), timeProvider);
 
 
-            using (var service2 = new ScreenTimeLocalService(timeProvider, provider2, userStateProvider, mockIdleTimeDetector.Object, null))
-            {
-                await service2.StartAsync(CancellationToken.None);
-                service2.StartSession("test");
-                timeProvider.Advance(TimeSpan.FromMinutes(30));
-                var userStatus2 = await service2.GetInteractiveTimeAsync();
-                Assert.NotNull(userStatus2);
-                Assert.Equal(TimeSpan.FromMinutes(60), userStatus2.LoggedInTime);
-                Assert.Equal(TimeSpan.FromMinutes(0), userStatus2.ExtensionTime);
-
-            }
+            using var service2 = new ScreenTimeLocalService(timeProvider, provider2, userStateProvider, mockIdleTimeDetector.Object, null);
+            await service2.StartAsync(CancellationToken.None);
+            service2.StartSession("test");
+            timeProvider.Advance(TimeSpan.FromMinutes(30));
+            var userStatus2 = await service2.GetInteractiveTimeAsync();
+            Assert.NotNull(userStatus2);
+            Assert.Equal(TimeSpan.FromMinutes(60), userStatus2.LoggedInTime);
+            Assert.Equal(TimeSpan.FromMinutes(0), userStatus2.ExtensionTime);
 
         }
     }

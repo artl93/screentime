@@ -1,7 +1,7 @@
 ﻿using System.Management;
 using System.Runtime.InteropServices;
 
-namespace ScreenTime
+namespace ScreenTimeClient
 {
     public partial class SystemLockStateService : ILockStateService
     {

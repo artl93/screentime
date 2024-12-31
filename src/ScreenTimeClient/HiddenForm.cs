@@ -3,13 +3,13 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Identity.Client;
 using Microsoft.Identity.Client.Extensions.Msal;
 using Microsoft.Win32;
-using ScreenTime;
+using ScreenTimeClient;
 using System.Diagnostics;
 
 internal class HiddenForm : Form
 {
     private readonly NotifyIcon icon;
-    private ToolStripItem usernameItem;
+    private readonly ToolStripItem? usernameItem;
     private readonly ILogger? logger;
     private readonly IUserConfigurationProvider _userConfigurationProvider;
     private bool messageIsVisible = false;
@@ -17,8 +17,13 @@ internal class HiddenForm : Form
     private bool _disableLock;
     private bool _enableOnline;
     private int _lockDelaySeconds;
-    private List<ToolStripItem> preLoginItemsList = new();
-    private List<ToolStripItem> postLoginItemsList = new();
+    private readonly List<ToolStripItem> preLoginItemsList = [];
+    private readonly List<ToolStripItem> postLoginItemsList = [];
+    private readonly Lock messageBoxLock = new();
+    private readonly Lock screenLockLock = new();
+    private bool isLocked = false;
+    private Task MessageBoxTask = Task.CompletedTask;
+    private IPublicClientApplication? _publicClientApp;
 
     public HiddenForm(IScreenTimeStateClient client,
         SystemLockStateService lockProvider,
@@ -139,7 +144,8 @@ internal class HiddenForm : Form
         preLoginItemsList.ForEach(i => i.Visible = true);
         postLoginItemsList.ForEach(i => i.Visible = false);
         ShowMessage(new UserMessage("Not logged in", "You are not logged in.", "🔓", "Okay"));
-        usernameItem.Visible = false;
+        if (usernameItem != null)
+            usernameItem.Visible = false;
     }
 
     private void UpdateForLogin(IAccount account)
@@ -147,8 +153,11 @@ internal class HiddenForm : Form
         preLoginItemsList.ForEach(i => i.Visible = false);
         postLoginItemsList.ForEach(i => i.Visible = true);
         ShowMessage(new UserMessage("Logged in", $"You are logged in as {account.Username}.", "🔒", "Okay"));
-        usernameItem.Visible = true;
-        usernameItem.Text = $"Signed in: ({account.Username}) 🔒";
+        if (usernameItem != null)
+        {
+            usernameItem.Visible = true;
+            usernameItem.Text = $"Signed in: ({account.Username}) 🔒";
+        }
     }
 
     private IPublicClientApplication GetClientApp()
@@ -160,7 +169,7 @@ internal class HiddenForm : Form
                 .WithAuthority("https://login.microsoftonline.com/common")
                 .WithDefaultRedirectUri()
                 .WithClientName("ScreenTime taskbar client")
-                .WithClientVersion(System.Reflection.Assembly.GetExecutingAssembly().GetName().Version.ToString())
+                .WithClientVersion(System.Reflection.Assembly.GetExecutingAssembly().GetName().Version?.ToString())
                 .Build();
             MsalCacheHelper cacheHelper = CreateCacheHelperAsync().GetAwaiter().GetResult();
 
@@ -181,7 +190,7 @@ internal class HiddenForm : Form
 
         try
         {
-            if (accounts.Count() != 0)
+            if (accounts.Any())
                 result = app.AcquireTokenSilent(scopes, accounts.FirstOrDefault())
                   .ExecuteAsync().GetAwaiter().GetResult();
             else 
@@ -234,11 +243,7 @@ internal class HiddenForm : Form
         throw new NotImplementedException();
     }
 
-    private readonly Lock messageBoxLock = new();
-    private readonly Lock screenLockLock = new();
-    private bool isLocked = false;
-    private Task MessageBoxTask = Task.CompletedTask;
-    private IPublicClientApplication? _publicClientApp;
+
 
     private void HandleLocking(SystemLockStateService lockProvider)
     {

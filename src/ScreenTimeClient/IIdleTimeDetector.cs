@@ -1,6 +1,6 @@
 ﻿using System.Runtime.InteropServices;
 
-namespace ScreenTime
+namespace ScreenTimeClient
 {
     public interface IIdleTimeDetector
     {

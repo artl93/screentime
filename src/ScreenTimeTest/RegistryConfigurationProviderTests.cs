@@ -2,7 +2,7 @@ using Moq;
 using System;
 using System.Threading.Tasks;
 using Xunit;
-using ScreenTime;
+using ScreenTimeClient;
 using Microsoft.Extensions.Time.Testing;
 
 namespace ScreenTimeTest

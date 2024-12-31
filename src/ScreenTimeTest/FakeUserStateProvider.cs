@@ -1,4 +1,4 @@
-﻿using ScreenTime;
+﻿using ScreenTimeClient;
 using System;
 
 namespace ScreenTimeTest
