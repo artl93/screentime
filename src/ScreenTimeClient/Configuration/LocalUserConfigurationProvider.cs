@@ -99,5 +99,9 @@
             GC.SuppressFinalize(this);
         }
 
+        public Task RequestExtensionAsync(int v)
+        {
+            throw new NotImplementedException();
+        }
     }
 }

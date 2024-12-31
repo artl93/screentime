@@ -4,16 +4,16 @@ using Microsoft.Identity.Client;
 using Microsoft.Identity.Client.Extensions.Msal;
 using Microsoft.Win32;
 using ScreenTimeClient.Configuration;
-using System.Diagnostics;
-using System.Net.Http.Headers;
+using System.Security.Policy;
 
 namespace ScreenTimeClient
 {
+
     internal class HiddenForm : Form
     {
         private readonly NotifyIcon icon;
-        private readonly HttpClient httpClient;
         private readonly ToolStripItem? usernameItem;
+        private readonly RemoteUserStateProvider remoteState;
         private readonly ILogger? logger;
         private readonly IUserConfigurationProvider _userConfigurationProvider;
         private bool messageIsVisible = false;
@@ -27,15 +27,14 @@ namespace ScreenTimeClient
         private readonly Lock screenLockLock = new();
         private bool isLocked = false;
         private Task MessageBoxTask = Task.CompletedTask;
-        private IPublicClientApplication? _publicClientApp;
 
         public HiddenForm(IScreenTimeStateClient client,
             SystemLockStateService lockProvider,
             IUserConfigurationProvider userConfigurationProvider,
-            HttpClient httpClient,
+            RemoteUserStateProvider remoteState,
             ILogger? logger)
         {
-            this.httpClient = httpClient;
+            this.remoteState = remoteState;
             this.logger = logger;
             _userConfigurationProvider = userConfigurationProvider;
             var result = _userConfigurationProvider.GetUserConfigurationForDayAsync().Result;
@@ -91,7 +90,7 @@ namespace ScreenTimeClient
                 postLoginItemsList.Add(icon.ContextMenuStrip.Items.Add("Request 5 minute extension", null, async (s, e) => { await RequestExtensionAsync(5); }));
                 postLoginItemsList.Add(icon.ContextMenuStrip.Items.Add("Request 15 minute extension", null, async (s, e) => { await RequestExtensionAsync(15); }));
                 postLoginItemsList.Add(icon.ContextMenuStrip.Items.Add("Request 60 minute extension", null, async (s, e) => { await RequestExtensionAsync(60); }));
-                postLoginItemsList.Add(icon.ContextMenuStrip.Items.Add("Logout...", null, (s, e) => { DoLogout(); }));
+                postLoginItemsList.Add(icon.ContextMenuStrip.Items.Add("Logout...", null, async (s, e) => { await DoLogoutAsync(); }));
             }
 
             //icon.ContextMenuStrip.Items.Add("Exit", null, (s, e) => 
@@ -133,10 +132,9 @@ namespace ScreenTimeClient
 
             if (_enableOnline)
             {
-                var account = GetClientApp().GetAccountsAsync().GetAwaiter().GetResult().FirstOrDefault();
-                if (account != null)
+                if (!this.remoteState.IsLoggedIn)
                 {
-                    UpdateForLogin(account, "");
+                    UpdateForLogin(this.remoteState.GetUsernameAsync().GetAwaiter().GetResult());
                 }
                 else
                 {
@@ -147,7 +145,7 @@ namespace ScreenTimeClient
 
         private async Task RequestExtensionAsync(int v)
         {
-            _ = await this.httpClient.PutAsync($"https://localhost:7115/request/{v}", null);
+            await _userConfigurationProvider.RequestExtensionAsync(v);
         }
 
         private void UpdateForLogout()
@@ -159,105 +157,42 @@ namespace ScreenTimeClient
                 usernameItem.Visible = false;
         }
 
-        private void UpdateForLogin(IAccount account, string token)
+        private void UpdateForLogin(string username)
         {
             preLoginItemsList.ForEach(i => i.Visible = false);
             postLoginItemsList.ForEach(i => i.Visible = true);
-            ShowMessage(new UserMessage("Logged in", $"You are logged in as {account.Username}.", "🔒", "Okay"));
+            ShowMessage(new UserMessage("Logged in", $"You are logged in as {username}.", "🔒", "Okay"));
             if (usernameItem != null)
             {
                 usernameItem.Visible = true;
-                usernameItem.Text = $"Signed in: ({account.Username}) 🔒";
+                usernameItem.Text = $"Signed in: ({username}) 🔒";
             }
-            this.httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
-            var result = httpClient.GetAsync("https://localhost:7115/request/5").GetAwaiter().GetResult();
-            result = httpClient.PutAsync("https://localhost:7115/request/5", null).GetAwaiter().GetResult();
         }
 
-        private IPublicClientApplication GetClientApp()
+        private async Task<bool> DoLoginAsync()
         {
-            if (_publicClientApp == null)
-            {
-                _publicClientApp = PublicClientApplicationBuilder
-                    // .Create("b1982a95-6b93-46ca-844c-f0594227e2d7")
-                    .Create("4eb97520-4902-4817-ab35-ae38739253ba")
-                    .WithClientId("b1982a95-6b93-46ca-844c-f0594227e2d7")
-                    .WithAuthority("https://login.microsoftonline.com/4eb97520-4902-4817-ab35-ae38739253ba/")
-                    .WithDefaultRedirectUri()
-                    .WithClientName("ScreenTime taskbar client")
-                    .WithClientVersion(System.Reflection.Assembly.GetExecutingAssembly().GetName().Version?.ToString())
-                    .Build();
-                MsalCacheHelper cacheHelper = CreateCacheHelperAsync().GetAwaiter().GetResult();
+            bool loggedIn = false;
+            loggedIn = await remoteState.LoginAsync(silent: false);
 
-                // Let the cache helper handle MSAL's cache, otherwise the user will be prompted to sign-in every time.
-                cacheHelper.RegisterCache(_publicClientApp.UserTokenCache);
+            if (loggedIn)
+            { 
+                UpdateForLogin(await remoteState.GetUsernameAsync());
             }
-            return _publicClientApp;
-        }
-
-        private async Task DoLoginAsync()
-        {
-
-            var app = GetClientApp();
-
-            var accounts = await app.GetAccountsAsync();
-            var scopes = new string[] { "user.read", "api://b1982a95-6b93-46ca-844c-f0594227e2d7/access_as_user" };
-            AuthenticationResult result;
-
-            try
-            {
-                if (accounts.Any())
-                    result = app.AcquireTokenSilent(scopes, accounts.FirstOrDefault())
-                      .ExecuteAsync().GetAwaiter().GetResult();
-                else
-                    result = await app.AcquireTokenInteractive(scopes).ExecuteAsync();
-
-                logger?.LogInformation("Login result: {Result}", result);
-                if (result != null && !string.IsNullOrEmpty(result.AccessToken))
-                {
-                    UpdateForLogin(result.Account, result.AccessToken);
-                }
-            }
-            catch (Exception e)
-            {
-                logger?.LogError(e, "Login error: {Message}", e.Message);
-            }
-
+            return loggedIn;
 
         }
 
-        private void DoLogout()
+        private async Task DoLogoutAsync()
         {
-            var app = GetClientApp();
-            var accounts = app.GetAccountsAsync().GetAwaiter().GetResult();
-            foreach (var account in accounts)
-            {
-                app.RemoveAsync(account).GetAwaiter().GetResult();
-            }
+            await remoteState.LogoutAsync();
             UpdateForLogout();
         }
 
-        private static async Task<MsalCacheHelper> CreateCacheHelperAsync()
-        {
-            var storageProperties = new StorageCreationPropertiesBuilder(
-                              System.Reflection.Assembly.GetExecutingAssembly().GetName().Name + ".msalcache.bin",
-                              MsalCacheHelper.UserRootDirectory)
-                                .Build();
-
-            MsalCacheHelper cacheHelper = await MsalCacheHelper.CreateAsync(
-                        storageProperties,
-                        new TraceSource("MSAL.CacheTrace"))
-                     .ConfigureAwait(false);
-
-            return cacheHelper;
-        }
 
         private void SystemEvents_SessionSwitch(object sender, SessionSwitchEventArgs e)
         {
             throw new NotImplementedException();
         }
-
-
 
         private void HandleLocking(SystemLockStateService lockProvider)
         {

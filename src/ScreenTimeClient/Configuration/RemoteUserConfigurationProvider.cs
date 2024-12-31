@@ -75,5 +75,10 @@ namespace ScreenTimeClient.Configuration
             Dispose(disposing: true);
             GC.SuppressFinalize(this);
         }
+
+        public Task RequestExtensionAsync(int v)
+        {
+            throw new NotImplementedException();
+        }
     }
 }

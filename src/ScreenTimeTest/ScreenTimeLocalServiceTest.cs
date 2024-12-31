@@ -143,9 +143,8 @@ namespace ScreenTimeTest
                 .Select(p => (DateTimeOffset.Parse(p[0]), DateTimeOffset.Parse(p[1]), Enum.Parse<UserState>(p[2])))
                 .ToArray();
 
-            FakeTimeProvider timeProvider = new();
+            FakeTimeProvider timeProvider = new(DateTimeOffset.Parse("2027/01/01 00:00 -8:00"));
             timeProvider.SetLocalTimeZone(TimeZoneInfo.FindSystemTimeZoneById("America/Los_Angeles"));
-            timeProvider.SetUtcNow(DateTimeOffset.Parse("2027/01/01 00:00 -8:00"));
 
             var userStateProvider = new FakeUserStateProvider(timeProvider);
 

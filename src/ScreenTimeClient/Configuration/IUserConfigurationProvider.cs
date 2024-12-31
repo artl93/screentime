@@ -8,5 +8,6 @@
         public event EventHandler<UserConfigurationResponseEventArgs>? OnExtensionResponse;
         public void ResetExtensions();
         public void AddExtension(DateTimeOffset date, int minutes);
+        public Task RequestExtensionAsync(int v);
     }
 }
