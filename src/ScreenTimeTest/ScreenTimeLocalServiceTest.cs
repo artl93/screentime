@@ -535,7 +535,7 @@ namespace ScreenTimeTest
             UserConfigurationProvider provider2 = new(new MockUserConfigurationReader(configurationA), timeProvider);
 
 
-            using (var service2 = new ScreenTimeLocalService(timeProvider, provider2, userStateProvider, null))
+            using (var service2 = new ScreenTimeLocalService(timeProvider, provider2, userStateProvider, mockIdleTimeDetector.Object, null))
             {
                 await service2.StartAsync(CancellationToken.None);
                 service2.StartSession("test");
