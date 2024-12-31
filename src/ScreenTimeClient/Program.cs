@@ -1,4 +1,4 @@
-﻿using ScreenTime;
+﻿using ScreenTimeClient;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Win32;
 using Microsoft.Extensions.Hosting;

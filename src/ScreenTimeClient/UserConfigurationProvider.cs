@@ -1,6 +1,6 @@
 ﻿
 
-namespace ScreenTime
+namespace ScreenTimeClient
 {
     public class UserConfigurationProvider : IUserConfigurationProvider, IDisposable
     {

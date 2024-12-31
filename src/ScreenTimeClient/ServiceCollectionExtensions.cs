@@ -1,7 +1,7 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
-namespace ScreenTime
+namespace ScreenTimeClient
 {
     public static class ServiceCollectionExtensions
     {

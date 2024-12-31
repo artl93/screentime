@@ -1,7 +1,8 @@
 ﻿
 using Microsoft.Extensions.Hosting;
+using ScreenTimeClient;
 
-namespace ScreenTime
+namespace ScreenTimeClient
 {
     public interface IScreenTimeStateClient : IHostedService
     {
