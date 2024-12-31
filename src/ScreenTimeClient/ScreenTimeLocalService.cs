@@ -2,18 +2,18 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using ScreenTimeClient;
 using System.Runtime.CompilerServices;
 using static System.Windows.Forms.VisualStyles.VisualStyleElement;
 [assembly: InternalsVisibleTo("ScreenTimeTest")]
 
-namespace ScreenTime
+namespace ScreenTimeClient
 {
 
-    public partial class ScreenTimeLocalService(
-        TimeProvider timeProvider, 
-        IUserConfigurationProvider userConfigurationProvider, 
-        UserStateRegistryProvider stateProvider, 
-        ILogger? logger) 
+    public partial class ScreenTimeLocalService(TimeProvider timeProvider,
+                                                IUserConfigurationProvider userConfigurationProvider,
+                                                UserStateRegistryProvider stateProvider,
+                                                IIdleTimeDetector idleDetector, ILogger? logger) 
         : IScreenTimeStateClient, IDisposable, IHostedService
     {
         private readonly IUserConfigurationProvider userConfigurationProvider = userConfigurationProvider;
@@ -30,6 +30,7 @@ namespace ScreenTime
         private UserState lastUserState;
         private DateTimeOffset lastMessageShown;
         bool started = false;
+        private readonly IIdleTimeDetector idleDetector = idleDetector;
         private bool isIdle;
         private readonly ILogger? logger = logger;
 
@@ -62,12 +63,9 @@ namespace ScreenTime
                 lastKnownTime = _timeProvider.GetUtcNow();
                 userConfigurationProvider.ResetExtensions();
             }
-            if (activityState != UserActivityState.Active)
-            {
-                 // only count the time in between the last state and now if the last state was active
-                 // otherwise, throw it out.
-                 lastKnownTime = _timeProvider.GetUtcNow();
-            }
+            // throw out all time between now and the last known state - we have no idea what was happening when the app wasn't running 
+            // because the OS isn't giving shutdown signals as we'd expect 
+            lastKnownTime = _timeProvider.GetUtcNow();
             activityState = UserActivityState.Active;
 
 
@@ -337,7 +335,7 @@ namespace ScreenTime
 
         void UpdateIdleTime()
         {
-            var idleTime = IdleTimeDetector.GetIdleTime();
+            var idleTime = idleDetector.GetIdleTime();
             if (idleTime.TotalMinutes >= 5) // Notify if idle for 5 minutes
             {
                 if (!isIdle)

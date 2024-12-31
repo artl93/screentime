@@ -3,15 +3,15 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Identity.Client;
 using Microsoft.Identity.Client.Extensions.Msal;
 using Microsoft.Win32;
-using ScreenTime;
+using ScreenTimeClient;
 using System.Diagnostics;
 using System.Net.Http.Headers;
 
 internal class HiddenForm : Form
 {
     private readonly NotifyIcon icon;
-    private ToolStripItem usernameItem;
     private readonly HttpClient httpClient;
+    private readonly ToolStripItem? usernameItem;
     private readonly ILogger? logger;
     private readonly IUserConfigurationProvider _userConfigurationProvider;
     private bool messageIsVisible = false;
@@ -19,8 +19,13 @@ internal class HiddenForm : Form
     private bool _disableLock;
     private bool _enableOnline;
     private int _lockDelaySeconds;
-    private List<ToolStripItem> preLoginItemsList = new();
-    private List<ToolStripItem> postLoginItemsList = new();
+    private readonly List<ToolStripItem> preLoginItemsList = [];
+    private readonly List<ToolStripItem> postLoginItemsList = [];
+    private readonly Lock messageBoxLock = new();
+    private readonly Lock screenLockLock = new();
+    private bool isLocked = false;
+    private Task MessageBoxTask = Task.CompletedTask;
+    private IPublicClientApplication? _publicClientApp;
 
     public HiddenForm(IScreenTimeStateClient client,
         SystemLockStateService lockProvider,
@@ -148,7 +153,8 @@ internal class HiddenForm : Form
         preLoginItemsList.ForEach(i => i.Visible = true);
         postLoginItemsList.ForEach(i => i.Visible = false);
         ShowMessage(new UserMessage("Not logged in", "You are not logged in.", "🔓", "Okay"));
-        usernameItem.Visible = false;
+        if (usernameItem != null)
+            usernameItem.Visible = false;
     }
 
     private void UpdateForLogin(IAccount account, string token)
@@ -156,8 +162,11 @@ internal class HiddenForm : Form
         preLoginItemsList.ForEach(i => i.Visible = false);
         postLoginItemsList.ForEach(i => i.Visible = true);
         ShowMessage(new UserMessage("Logged in", $"You are logged in as {account.Username}.", "🔒", "Okay"));
-        usernameItem.Visible = true;
-        usernameItem.Text = $"Signed in: ({account.Username}) 🔒";
+        if (usernameItem != null)
+        {
+            usernameItem.Visible = true;
+            usernameItem.Text = $"Signed in: ({account.Username}) 🔒";
+        }
         this.httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
         // httpClient.DefaultRequestHeaders.Add("User-Agent", "ScreenTime-taskbar-client");
         var result = httpClient.GetAsync("https://localhost:7115/request/5").GetAwaiter().GetResult();
@@ -175,8 +184,8 @@ internal class HiddenForm : Form
                 .WithClientId("b1982a95-6b93-46ca-844c-f0594227e2d7")
                 .WithAuthority("https://login.microsoftonline.com/4eb97520-4902-4817-ab35-ae38739253ba/")
                 .WithDefaultRedirectUri()
-                .WithClientName("ScreenTime-taskbar-client")
-                .WithClientVersion(System.Reflection.Assembly.GetExecutingAssembly().GetName().Version.ToString())
+                .WithClientName("ScreenTime taskbar client")
+                .WithClientVersion(System.Reflection.Assembly.GetExecutingAssembly().GetName().Version?.ToString())
                 .Build();
             MsalCacheHelper cacheHelper = CreateCacheHelperAsync().GetAwaiter().GetResult();
 
@@ -197,8 +206,9 @@ internal class HiddenForm : Form
 
         try
         {
-            if (accounts.Count() != 0)
-                result = await app.AcquireTokenSilent(scopes, accounts.FirstOrDefault()).ExecuteAsync();
+            if (accounts.Any())
+                result = app.AcquireTokenSilent(scopes, accounts.FirstOrDefault())
+                  .ExecuteAsync().GetAwaiter().GetResult();
             else 
                 result = await app.AcquireTokenInteractive(scopes).ExecuteAsync();
 
@@ -248,11 +258,7 @@ internal class HiddenForm : Form
         throw new NotImplementedException();
     }
 
-    private readonly Lock messageBoxLock = new();
-    private readonly Lock screenLockLock = new();
-    private bool isLocked = false;
-    private Task MessageBoxTask = Task.CompletedTask;
-    private IPublicClientApplication? _publicClientApp;
+
 
     private void HandleLocking(SystemLockStateService lockProvider)
     {

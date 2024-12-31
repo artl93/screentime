@@ -1,7 +1,7 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
-namespace ScreenTime
+namespace ScreenTimeClient
 {
     public static class ServiceCollectionExtensions
     {
@@ -25,6 +25,7 @@ namespace ScreenTime
                     _ => new ScreenTimeLocalService(serviceProvider.GetRequiredService<TimeProvider>(),
                         serviceProvider.GetRequiredService<IUserConfigurationProvider>(),
                         serviceProvider.GetRequiredService<UserStateRegistryProvider>(),
+                        serviceProvider.GetRequiredService<IIdleTimeDetector>(),
                         serviceProvider.GetRequiredService<ILogger<ScreenTimeLocalService>>())
                 };
                 return client;

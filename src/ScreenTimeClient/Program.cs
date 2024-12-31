@@ -1,4 +1,4 @@
-﻿using ScreenTime;
+﻿using ScreenTimeClient;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Win32;
 using Microsoft.Extensions.Hosting;
@@ -47,6 +47,7 @@ static class Program
                 services.AddLoggingConfiguration();
                 services.AddSingleton<SystemStateEventHandlers>();
                 services.AddSingleton(TimeProvider.System);
+                services.AddSingleton<IIdleTimeDetector, IdleTimeDetector>();
                 services.AddHttpClientConfiguration();
                 services.AddSingleton<UserStateRegistryProvider>();
                 services.AddSingleton<SystemLockStateService>();

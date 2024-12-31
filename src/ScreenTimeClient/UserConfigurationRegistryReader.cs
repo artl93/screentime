@@ -2,7 +2,7 @@
 using System.Configuration;
 using System.Text.Json;
 
-namespace ScreenTime
+namespace ScreenTimeClient
 {
     public class UserConfigurationRegistryReader : IUserConfigurationReader
     {

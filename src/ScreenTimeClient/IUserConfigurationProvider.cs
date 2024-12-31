@@ -1,5 +1,5 @@
 ﻿
-namespace ScreenTime
+namespace ScreenTimeClient
 {
     public interface IUserConfigurationProvider
     {

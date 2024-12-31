@@ -1,23 +1,17 @@
-﻿using ScreenTime;
+﻿using ScreenTimeClient;
 
 namespace ScreenTimeTest
 {
-    internal class MockUserConfigurationReader : IUserConfigurationReader
+    internal class MockUserConfigurationReader(UserConfiguration startingConfiguration) : IUserConfigurationReader
     {
-        UserConfiguration userConfiguration;
-        public MockUserConfigurationReader(UserConfiguration startingConfiguration) 
-        {
-            userConfiguration = startingConfiguration;
-        }
-
         public UserConfiguration GetConfiguration()
         {
-            return userConfiguration;
+            return startingConfiguration;
         }
 
         public void SetConfiguration(UserConfiguration configuration)
         {
-            userConfiguration = configuration;
+            startingConfiguration = configuration;
         }
     }
 }

@@ -1,4 +1,6 @@
-﻿namespace ScreenTime
+﻿using ScreenTimeClient;
+
+namespace ScreenTimeClient
 {
     public class UserStatusEventArgs(UserStatus status, DateTimeOffset dateTime, TimeSpan interactiveTime)
     {
