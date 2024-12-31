@@ -1,6 +1,6 @@
 using System;
 
-namespace ScreenTimeClient
+namespace ScreenTimeClient.Configuration
 {
     public class UserConfigurationResponseEventArgs(object Sender, int Minutes) : EventArgs
     {

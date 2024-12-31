@@ -5,6 +5,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Application = System.Windows.Forms.Application;
 using NetEscapades.Extensions.Logging.RollingFile;
+using ScreenTimeClient.Configuration;
 
 
 static class Program

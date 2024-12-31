@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using Xunit;
 using ScreenTimeClient;
 using Microsoft.Extensions.Time.Testing;
+using ScreenTimeClient.Configuration;
 
 namespace ScreenTimeTest
 {
@@ -13,17 +14,15 @@ namespace ScreenTimeTest
         public async Task GetUserConfigurationForDayAsync_ReturnsConfiguration()
         {
             var _mockReader = new Mock<IUserConfigurationReader>();
-            var _mockTimeProvider = new FakeTimeProvider();
+            var _mockTimeProvider = new FakeTimeProvider(DateTimeOffset.Parse("2024-12-25 00:00:00"));
             using var _provider = new LocalUserConfigurationProvider(_mockReader.Object, _mockTimeProvider);
 
             // Arrange
             var expectedConfig = new UserConfiguration("test");
             _mockReader.Setup(r => r.GetConfiguration()).Returns(expectedConfig);
 
-            // Act
             var result = await _provider.GetUserConfigurationForDayAsync();
 
-            // Assert
             Assert.Equal(expectedConfig, result);
         }
 
@@ -36,15 +35,12 @@ namespace ScreenTimeTest
             var expectedConfiguration = new UserConfiguration("testA");
             var _mockReader = new MockUserConfigurationReader(configurationA);
 
-            var _mockTimeProvider = new FakeTimeProvider();
+            var _mockTimeProvider = new FakeTimeProvider(DateTimeOffset.Parse("2024-12-25 00:00:00"));
             using var _provider = new LocalUserConfigurationProvider(_mockReader, _mockTimeProvider);
-            _mockTimeProvider.SetUtcNow(DateTime.Parse("2024-12-25 00:00:00"));
-
 
             var eventTriggered = false;
             _provider.OnConfigurationChanged += (sender, args) => eventTriggered = true;
             
-            // Act
             _mockTimeProvider.Advance(TimeSpan.FromSeconds(20));
             await _provider.SaveUserConfigurationForDayAsync(configurationB);
             _mockTimeProvider.Advance(TimeSpan.FromSeconds(20));
@@ -62,19 +58,12 @@ namespace ScreenTimeTest
             var expectedConfiguration = new UserConfiguration("testB");
             var _mockReader = new MockUserConfigurationReader(configurationA);
 
-            var _mockTimeProvider = new FakeTimeProvider();
+            var _mockTimeProvider = new FakeTimeProvider(DateTimeOffset.Parse("2024-12-25 00:00:00"));
             using var _provider = new LocalUserConfigurationProvider(_mockReader, _mockTimeProvider);
-            _mockTimeProvider.SetUtcNow(DateTime.Parse("2024-12-25 00:00:00"));
-
-            // Arrange
-
-
 
             var eventTriggered = false;
             _provider.OnConfigurationChanged += (sender, args) => eventTriggered = true;
 
-
-            // Act
             _mockTimeProvider.Advance(TimeSpan.FromSeconds(20));
             await _provider.SaveUserConfigurationForDayAsync(configurationB);
             _mockTimeProvider.Advance(TimeSpan.FromSeconds(20));
@@ -92,9 +81,8 @@ namespace ScreenTimeTest
             var expectedConfiguration = new UserConfiguration("testB");
             var _mockReader = new MockUserConfigurationReader(configurationA);
 
-            var _mockTimeProvider = new FakeTimeProvider();
+            var _mockTimeProvider = new FakeTimeProvider(DateTimeOffset.Parse("2024-12-25 00:00:00"));
             using var _provider = new LocalUserConfigurationProvider(_mockReader, _mockTimeProvider);
-            _mockTimeProvider.SetUtcNow(DateTime.Parse("2024-12-25 00:00:00"));
 
             // Arrange
 

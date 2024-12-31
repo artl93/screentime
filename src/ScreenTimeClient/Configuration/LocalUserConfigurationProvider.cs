@@ -1,9 +1,4 @@
-﻿
-
-using Microsoft.Extensions.Configuration;
-using System.Text.Json;
-
-namespace ScreenTimeClient
+﻿namespace ScreenTimeClient.Configuration
 {
 
     public class LocalUserConfigurationProvider : IUserConfigurationProvider, IDisposable
@@ -24,7 +19,8 @@ namespace ScreenTimeClient
 
         private void OnCheckForUpdates(object? state)
         {
-            if (!disposedValue) {
+            if (!disposedValue)
+            {
                 var configuration = reader.GetConfiguration();
                 if (userConfigurationCache != configuration)
                 {

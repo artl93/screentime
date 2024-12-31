@@ -6,6 +6,7 @@ using Moq;
 using Microsoft.Extensions;
 using Microsoft.Extensions.Time.Testing;
 using Microsoft.VisualStudio.TestPlatform.CommunicationUtilities;
+using ScreenTimeClient.Configuration;
 
 namespace ScreenTimeTest
 {

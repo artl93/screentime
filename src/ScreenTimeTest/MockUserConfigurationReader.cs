@@ -1,4 +1,4 @@
-﻿using ScreenTimeClient;
+﻿using ScreenTimeClient.Configuration;
 
 namespace ScreenTimeTest
 {

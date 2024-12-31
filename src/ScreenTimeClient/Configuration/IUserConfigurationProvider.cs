@@ -1,5 +1,4 @@
-﻿
-namespace ScreenTimeClient
+﻿namespace ScreenTimeClient.Configuration
 {
     public interface IUserConfigurationProvider
     {
