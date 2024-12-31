@@ -243,7 +243,7 @@ namespace ScreenTimeTest
             var mockUserConfiguration = new UserConfiguration("test");
             Moq.Mock<IUserConfigurationProvider> mockUserConfigurationProvider = new();
             mockUserConfigurationProvider.Setup(m => m.GetUserConfigurationForDayAsync()).ReturnsAsync(mockUserConfiguration);
-            
+
             using var service = new ScreenTimeLocalService(timeProvider, mockUserConfigurationProvider.Object, userStateProvider, null);
             var eventTriggered = false;
             service.OnUserStatusChanged += (sender, args) => eventTriggered = true;
@@ -289,8 +289,8 @@ namespace ScreenTimeTest
 
             using var service = new ScreenTimeLocalService(timeProvider, provider, userStateProvider, null);
             var eventTriggered = false;
-            service.OnUserStatusChanged += (sender, args) => { 
-                 eventTriggered = true;
+            service.OnUserStatusChanged += (sender, args) => {
+                eventTriggered = true;
                 // test sequence 
 
             };
@@ -422,7 +422,7 @@ namespace ScreenTimeTest
             UserConfiguration? configurationB;
 
             UserConfigurationProvider provider = new(new MockUserConfigurationReader(configurationA), timeProvider);
-            
+
 
             using (var service = new ScreenTimeLocalService(timeProvider, provider, userStateProvider, null))
             {
@@ -478,6 +478,52 @@ namespace ScreenTimeTest
             Assert.Equal(TimeSpan.FromMinutes(0), userStatus2.ExtensionTime);
 
 
+
+        }
+
+        [Fact]
+        public async Task TestTwoSessionsWithShutdownAndStartupSameDay()
+        {
+            var start = DateTimeOffset.Parse("2024/12/14 00:00 -8:00");
+            FakeTimeProvider timeProvider = new(start);
+            timeProvider.SetLocalTimeZone(TimeProvider.System.LocalTimeZone);
+            var userStateProvider = new FakeUserStateProvider(start.ToString(), "00:00:00");
+            var configurationA = new UserConfiguration("testA");
+
+            UserConfigurationProvider provider = new(new MockUserConfigurationReader(configurationA), timeProvider);
+
+
+            using (var service = new ScreenTimeLocalService(timeProvider, provider, userStateProvider, null))
+            {
+                await service.StartAsync(CancellationToken.None);
+                service.StartSession("test");
+                timeProvider.Advance(TimeSpan.FromMinutes(30));
+                Assert.Equal(UserState.Okay, service.GetUserState());
+                // apparently logging out just KILLS the service
+                // service.EndSession("test");
+                // await service.StopAsync(CancellationToken.None);
+            }
+
+            Assert.Equal(DateTimeOffset.Parse("2024/12/14 00:30 -8:00"), userStateProvider.LastKnownDate);
+            Assert.Equal(TimeSpan.FromMinutes(30), userStateProvider.Duration);
+
+            timeProvider.Advance(TimeSpan.FromHours(2));
+
+
+            UserConfigurationProvider provider2 = new(new MockUserConfigurationReader(configurationA), timeProvider);
+
+
+            using (var service2 = new ScreenTimeLocalService(timeProvider, provider2, userStateProvider, null))
+            {
+                await service2.StartAsync(CancellationToken.None);
+                service2.StartSession("test");
+                timeProvider.Advance(TimeSpan.FromMinutes(30));
+                var userStatus2 = await service2.GetInteractiveTimeAsync();
+                Assert.NotNull(userStatus2);
+                Assert.Equal(TimeSpan.FromMinutes(60), userStatus2.LoggedInTime);
+                Assert.Equal(TimeSpan.FromMinutes(0), userStatus2.ExtensionTime);
+
+            }
 
         }
     }

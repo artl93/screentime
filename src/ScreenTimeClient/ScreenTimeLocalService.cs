@@ -62,12 +62,9 @@ namespace ScreenTime
                 lastKnownTime = _timeProvider.GetUtcNow();
                 userConfigurationProvider.ResetExtensions();
             }
-            if (activityState != UserActivityState.Active)
-            {
-                 // only count the time in between the last state and now if the last state was active
-                 // otherwise, throw it out.
-                 lastKnownTime = _timeProvider.GetUtcNow();
-            }
+            // throw out all time between now and the last known state - we have no idea what was happening when the app wasn't running 
+            // because the OS isn't giving shutdown signals as we'd expect 
+            lastKnownTime = _timeProvider.GetUtcNow();
             activityState = UserActivityState.Active;
 
 
