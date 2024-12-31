@@ -44,15 +44,17 @@ static class Program
             {
                 services.AddHostedServices();
                 services.AddScreenTimeClient(args);
-                services.AddUserConfiguration();
+                services.AddUserConfiguration(args);
                 services.AddLoggingConfiguration();
                 services.AddSingleton<SystemStateEventHandlers>();
                 services.AddSingleton(TimeProvider.System);
                 services.AddSingleton<IIdleTimeDetector, IdleTimeDetector>();
-                services.AddHttpClientConfiguration();
+                services.AddHttpClientConfiguration(args);
                 services.AddSingleton<UserStateRegistryProvider>();
                 services.AddSingleton<SystemLockStateService>();
-                services.AddSingleton<RemoteUserStateProvider>();
+                services.AddSingleton<RemoteUserStateProvider>((sp) => new RemoteUserStateProvider(
+                    sp.GetRequiredService<HttpClient>(), 
+                    sp.GetRequiredService<ILogger<RemoteUserStateProvider>>()));
                 services.AddSingleton<HiddenForm>((sp) => new HiddenForm(
                     sp.GetRequiredService<IScreenTimeStateClient>(),
                     sp.GetRequiredService<SystemLockStateService>(),

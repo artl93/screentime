@@ -1,15 +1,22 @@
-﻿using System.Text;
+﻿using Microsoft.Extensions.Logging;
+using System.Text;
 using System.Text.Json;
 
 namespace ScreenTimeClient.Configuration
 {
-    public class RemoteUserConfigurationProvider(HttpClient httpClient) : IUserConfigurationProvider, IDisposable
+    public class RemoteUserConfigurationProvider(HttpClient httpClient, ILogger logger) : IUserConfigurationProvider, IDisposable
     {
         private readonly HttpClient httpClient = httpClient;
-        private const string url = "TODO: Replace Me";
+        const string configUrl = "configration/";
+        const string extensionUrl = "extensions/request/{0}";
+        const string profleUrl = "profile/";
+
+        ILogger logger = logger;
+
         private readonly JsonSerializerOptions options = new()
         {
-            PropertyNameCaseInsensitive = true
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+            WriteIndented = true
         };
 
         private UserConfiguration? userConfigurationCache = null;
@@ -17,27 +24,26 @@ namespace ScreenTimeClient.Configuration
         public event EventHandler<UserConfigurationEventArgs>? OnConfigurationChanged;
         public event EventHandler<UserConfigurationResponseEventArgs>? OnExtensionResponse;
 
-        public UserConfiguration GetConfiguration()
+        public async Task<UserConfiguration?> GetConfigurationAsync()
         {
-            var response = httpClient.GetAsync(url).Result;
+            var response = await httpClient.GetAsync(configUrl);
             response.EnsureSuccessStatusCode();
-            var content = response.Content.ReadAsStringAsync().Result;
+            var content = await response.Content.ReadAsStringAsync();
             return JsonSerializer.Deserialize<UserConfiguration>(content, options);
         }
-        public void SetConfiguration(UserConfiguration configuration)
+
+        public async Task<UserConfiguration> GetUserConfigurationForDayAsync()
         {
-            var content = new StringContent(JsonSerializer.Serialize(configuration, options), Encoding.UTF8, "application/json");
-            var response = httpClient.PostAsync(url, content).Result;
-            response.EnsureSuccessStatusCode();
+            // fire off request to get configuration asynchronously, but return immediately with the cached value
+
+            return await GetConfigurationAsync();
         }
-        public Task<UserConfiguration> GetUserConfigurationForDayAsync()
-        {
-            return Task.FromResult(GetConfiguration());
-        }
+
         public Task SaveUserConfigurationForDayAsync(UserConfiguration configuration)
         {
-            return Task.Run(() => SetConfiguration(configuration));
+            throw new NotImplementedException();
         }
+
         public void ResetExtensions()
         {
             if (userConfigurationCache is null)
@@ -47,6 +53,7 @@ namespace ScreenTimeClient.Configuration
             var newConfiguration = userConfigurationCache with { Extensions = [] };
             SaveUserConfigurationForDayAsync(newConfiguration).Wait();
         }
+
         public void AddExtension(DateTimeOffset date, int minutes)
         {
             if (userConfigurationCache is null)

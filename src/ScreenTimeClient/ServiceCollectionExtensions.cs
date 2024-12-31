@@ -34,15 +34,37 @@ namespace ScreenTimeClient
             return services;
         }
 
-        public static IServiceCollection AddUserConfiguration(this IServiceCollection services)
+        public static IServiceCollection AddUserConfiguration(this IServiceCollection services, string[] args)
         {
-            services.AddSingleton<IUserConfigurationProvider, LocalUserConfigurationProvider>((sp) =>
-            {
-                return new LocalUserConfigurationProvider(
+            services.AddSingleton((sp) =>
+                new LocalUserConfigurationProvider(
                     sp.GetRequiredService<IUserConfigurationReader>(),
-                    sp.GetRequiredService<TimeProvider>());
+                    sp.GetRequiredService<TimeProvider>()));
+
+            services.AddSingleton((sp) =>
+            {
+                return new SwitchableUserConfigurationProvider(
+                    sp.GetRequiredService<RemoteUserConfigurationProvider>(), 
+                    sp.GetRequiredService<LocalUserConfigurationProvider>());
             });
+
+            services.AddSingleton<IUserConfigurationProvider>((sp) =>
+            {
+                if (args.Contains("local") || args.Contains("live"))
+                    return sp.GetRequiredService<SwitchableUserConfigurationProvider>();
+                return sp.GetRequiredService<LocalUserConfigurationProvider>();
+            });
+
+            services.AddSingleton((sp) => 
+            { 
+                return new RemoteUserConfigurationProvider(
+                    sp.GetRequiredService<HttpClient>(),
+                    sp.GetRequiredService<ILogger<RemoteUserConfigurationProvider>>()); 
+            });
+
             services.AddSingleton<IUserConfigurationReader, UserConfigurationRegistryReader>();
+
+   
             return services;
         }
 
@@ -64,7 +86,7 @@ namespace ScreenTimeClient
             return services;
         }
 
-        public static IServiceCollection AddHttpClientConfiguration(this IServiceCollection services)
+        public static IServiceCollection AddHttpClientConfiguration(this IServiceCollection services, string[] args)
         {
             services.AddHttpClient("screentimeClient", client =>
             {
@@ -72,6 +94,7 @@ namespace ScreenTimeClient
                 client.DefaultRequestHeaders.Accept.Clear();
                 client.DefaultRequestHeaders.Accept.Add(new System.Net.Http.Headers.MediaTypeWithQualityHeaderValue("application/json"));
                 client.DefaultRequestHeaders.Add("User-Agent", "ScreenTime");
+                client.BaseAddress = args.Contains("local") ? new Uri("http://localhost:7115") : new Uri("https://screentime.azurewebsites.net");
             })
             .AddStandardResilienceHandler();
             return services;

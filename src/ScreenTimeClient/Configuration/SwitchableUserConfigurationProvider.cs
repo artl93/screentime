@@ -15,20 +15,21 @@
         }
         public Task<UserConfiguration> GetUserConfigurationForDayAsync()
         {
-            return provider.GetUserConfigurationForDayAsync();
+            return backupProvider.GetUserConfigurationForDayAsync();
         }
         public Task SaveUserConfigurationForDayAsync(UserConfiguration configuration)
         {
-            return provider.SaveUserConfigurationForDayAsync(configuration);
+            return backupProvider.SaveUserConfigurationForDayAsync(configuration);
         }
         public void ResetExtensions()
         {
-            provider.ResetExtensions();
+            backupProvider.ResetExtensions();
         }
         public void AddExtension(DateTimeOffset date, int minutes)
         {
-            provider.AddExtension(date, minutes);
+            backupProvider.AddExtension(date, minutes);
         }
+
         public void SwitchToBackup()
         {
             if (backupProvider is null)
@@ -67,7 +68,7 @@
 
         public Task RequestExtensionAsync(int v)
         {
-            throw new NotImplementedException();
+            return backupProvider.RequestExtensionAsync(v);
         }
     }
 }
