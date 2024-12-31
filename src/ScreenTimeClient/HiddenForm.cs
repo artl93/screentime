@@ -168,10 +168,8 @@ internal class HiddenForm : Form
             usernameItem.Text = $"Signed in: ({account.Username}) 🔒";
         }
         this.httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
-        // httpClient.DefaultRequestHeaders.Add("User-Agent", "ScreenTime-taskbar-client");
         var result = httpClient.GetAsync("https://localhost:7115/request/5").GetAwaiter().GetResult();
         result = httpClient.PutAsync("https://localhost:7115/request/5", null).GetAwaiter().GetResult();
-        // result = httpClient.GetAsync("https://graph.microsoft.com/v1.0/me").GetAwaiter().GetResult();
     }
 
     private IPublicClientApplication GetClientApp()
@@ -239,7 +237,6 @@ internal class HiddenForm : Form
 
     private static async Task<MsalCacheHelper> CreateCacheHelperAsync()
     {
-        // Since this is a WPF application, only Windows storage is configured
         var storageProperties = new StorageCreationPropertiesBuilder(
                           System.Reflection.Assembly.GetExecutingAssembly().GetName().Name + ".msalcache.bin",
                           MsalCacheHelper.UserRootDirectory)

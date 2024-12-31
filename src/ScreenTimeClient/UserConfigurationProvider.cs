@@ -56,20 +56,6 @@ namespace ScreenTimeClient
             }).ConfigureAwait(false);
         }
 
-        protected virtual void Dispose(bool disposing)
-        {
-            if (!disposedValue)
-            {
-                if (disposing)
-                {
-                    timer?.Dispose();
-                }
-
-                // TODO: free unmanaged resources (unmanaged objects) and override finalizer
-                // TODO: set large fields to null
-                disposedValue = true;
-            }
-        }
 
         public void ResetExtensions()
         {
@@ -94,13 +80,17 @@ namespace ScreenTimeClient
             OnExtensionResponse?.Invoke(this, new(this, minutes));
         }
 
-
-        // // TODO: override finalizer only if 'Dispose(bool disposing)' has code to free unmanaged resources
-        // ~UserConfigurationProvider()
-        // {
-        //     // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
-        //     Dispose(disposing: false);
-        // }
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!disposedValue)
+            {
+                if (disposing)
+                {
+                    timer?.Dispose();
+                }
+                disposedValue = true;
+            }
+        }
 
         public void Dispose()
         {
