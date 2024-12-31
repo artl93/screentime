@@ -9,11 +9,10 @@ using static System.Windows.Forms.VisualStyles.VisualStyleElement;
 namespace ScreenTime
 {
 
-    public partial class ScreenTimeLocalService(
-        TimeProvider timeProvider, 
-        IUserConfigurationProvider userConfigurationProvider, 
-        UserStateRegistryProvider stateProvider, 
-        ILogger? logger) 
+    public partial class ScreenTimeLocalService(TimeProvider timeProvider,
+                                                IUserConfigurationProvider userConfigurationProvider,
+                                                UserStateRegistryProvider stateProvider,
+                                                IIdleTimeDetector idleDetector, ILogger? logger) 
         : IScreenTimeStateClient, IDisposable, IHostedService
     {
         private readonly IUserConfigurationProvider userConfigurationProvider = userConfigurationProvider;
@@ -30,6 +29,7 @@ namespace ScreenTime
         private UserState lastUserState;
         private DateTimeOffset lastMessageShown;
         bool started = false;
+        private readonly IIdleTimeDetector idleDetector = idleDetector;
         private bool isIdle;
         private readonly ILogger? logger = logger;
 
@@ -334,7 +334,7 @@ namespace ScreenTime
 
         void UpdateIdleTime()
         {
-            var idleTime = IdleTimeDetector.GetIdleTime();
+            var idleTime = idleDetector.GetIdleTime();
             if (idleTime.TotalMinutes >= 5) // Notify if idle for 5 minutes
             {
                 if (!isIdle)
