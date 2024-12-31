@@ -18,17 +18,12 @@ namespace ScreenTimeClient
         {
             services.AddSingleton(serviceProvider =>
             {
-                var firstArg = args.Length > 0 ? args[0] : string.Empty;
-                IScreenTimeStateClient client = firstArg switch
-                {
-                    "develop" => new ScreenTimeServiceClient(serviceProvider.GetRequiredService<HttpClient>()).SetBaseAddress("https://localhost:7186"),
-                    "live" => new ScreenTimeServiceClient(serviceProvider.GetRequiredService<HttpClient>()).SetBaseAddress("https://screentime.azurewebsites.net"),
-                    _ => new ScreenTimeLocalService(serviceProvider.GetRequiredService<TimeProvider>(),
+                IScreenTimeStateClient client = 
+                    new ScreenTimeLocalService(serviceProvider.GetRequiredService<TimeProvider>(),
                         serviceProvider.GetRequiredService<IUserConfigurationProvider>(),
                         serviceProvider.GetRequiredService<UserStateRegistryProvider>(),
                         serviceProvider.GetRequiredService<IIdleTimeDetector>(),
-                        serviceProvider.GetRequiredService<ILogger<ScreenTimeLocalService>>())
-                };
+                        serviceProvider.GetRequiredService<ILogger<ScreenTimeLocalService>>());
                 return client;
             });
             return services;
@@ -50,7 +45,7 @@ namespace ScreenTimeClient
 
             services.AddSingleton<IUserConfigurationProvider>((sp) =>
             {
-                if (args.Contains("local") || args.Contains("live"))
+                if (args.Contains("develop") || args.Contains("live"))
                     return sp.GetRequiredService<SwitchableUserConfigurationProvider>();
                 return sp.GetRequiredService<LocalUserConfigurationProvider>();
             });

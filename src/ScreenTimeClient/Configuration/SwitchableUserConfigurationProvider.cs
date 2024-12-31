@@ -13,9 +13,12 @@
             provider.OnConfigurationChanged += (sender, args) => OnConfigurationChanged?.Invoke(sender, args);
             provider.OnExtensionResponse += (sender, args) => OnExtensionResponse?.Invoke(sender, args);
         }
-        public Task<UserConfiguration> GetUserConfigurationForDayAsync()
+        public async Task<UserConfiguration> GetUserConfigurationForDayAsync()
         {
-            return backupProvider.GetUserConfigurationForDayAsync();
+            // always enable remote provider
+            var result = await backupProvider.GetUserConfigurationForDayAsync();
+            var newResult = result with { EnableOnline = true };
+            return newResult;
         }
         public Task SaveUserConfigurationForDayAsync(UserConfiguration configuration)
         {
