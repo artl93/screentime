@@ -1,4 +1,6 @@
-﻿namespace ScreenTimeClient.Configuration
+﻿using ScreenTime.Common;
+
+namespace ScreenTimeClient.Configuration
 {
     public interface IUserConfigurationReader
     {

@@ -1,8 +1,5 @@
 using Moq;
-using System;
-using System.Threading.Tasks;
-using Xunit;
-using ScreenTimeClient;
+using ScreenTime.Common;
 using Microsoft.Extensions.Time.Testing;
 using ScreenTimeClient.Configuration;
 

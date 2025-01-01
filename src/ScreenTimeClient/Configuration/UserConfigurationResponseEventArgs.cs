@@ -1,4 +1,4 @@
-using System;
+using ScreenTime.Common;
 
 namespace ScreenTimeClient.Configuration
 {

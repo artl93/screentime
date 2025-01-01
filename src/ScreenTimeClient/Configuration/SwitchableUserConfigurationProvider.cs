@@ -1,4 +1,7 @@
-﻿namespace ScreenTimeClient.Configuration
+﻿using ScreenTime.Common;
+
+
+namespace ScreenTimeClient.Configuration
 {
     public class SwitchableUserConfigurationProvider : IUserConfigurationProvider, IDisposable
     {

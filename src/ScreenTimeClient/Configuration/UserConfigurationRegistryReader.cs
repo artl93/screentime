@@ -1,6 +1,6 @@
 ﻿using Microsoft.Win32;
-using System.Configuration;
 using System.Text.Json;
+using ScreenTime.Common;
 
 namespace ScreenTimeClient.Configuration
 {

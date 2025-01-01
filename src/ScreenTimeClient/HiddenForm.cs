@@ -1,10 +1,8 @@
 ﻿
 using Microsoft.Extensions.Logging;
-using Microsoft.Identity.Client;
-using Microsoft.Identity.Client.Extensions.Msal;
 using Microsoft.Win32;
 using ScreenTimeClient.Configuration;
-using System.Security.Policy;
+using ScreenTime.Common;
 
 namespace ScreenTimeClient
 {

@@ -1,4 +1,5 @@
 ﻿using ScreenTimeClient.Configuration;
+using ScreenTime.Common;
 
 namespace ScreenTimeTest
 {

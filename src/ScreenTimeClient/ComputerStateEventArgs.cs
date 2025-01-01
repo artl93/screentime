@@ -1,4 +1,6 @@
-﻿namespace ScreenTimeClient
+﻿using ScreenTime.Common;
+
+namespace ScreenTimeClient
 {
     public class ComputerStateEventArgs(UserState state) : EventArgs
     {

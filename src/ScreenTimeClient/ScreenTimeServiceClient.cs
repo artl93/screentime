@@ -1,12 +1,5 @@
-﻿using Microsoft.Extensions.DependencyInjection;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Text.Json;
-using System.Threading.Tasks;
-using static System.Windows.Forms.VisualStyles.VisualStyleElement.TaskbarClock;
-using ScreenTimeClient.Configuration;
+﻿using System.Text.Json;
+using ScreenTime.Common;
 
 namespace ScreenTimeClient
 {

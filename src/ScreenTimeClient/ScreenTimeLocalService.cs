@@ -1,10 +1,9 @@
 ﻿using Humanizer;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using ScreenTimeClient.Configuration;
 using System.Runtime.CompilerServices;
-using static System.Windows.Forms.VisualStyles.VisualStyleElement;
+using ScreenTime.Common;
 [assembly: InternalsVisibleTo("ScreenTimeTest")]
 
 namespace ScreenTimeClient

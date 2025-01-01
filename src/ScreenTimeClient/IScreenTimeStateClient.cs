@@ -1,6 +1,6 @@
 ﻿
 using Microsoft.Extensions.Hosting;
-using ScreenTimeClient.Configuration;
+using ScreenTime.Common;
 
 namespace ScreenTimeClient
 {

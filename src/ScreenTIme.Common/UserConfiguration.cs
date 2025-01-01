@@ -1,6 +1,6 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 
-namespace ScreenTimeClient.Configuration
+namespace ScreenTime.Common
 {
     public record class UserConfiguration(
             string Name,

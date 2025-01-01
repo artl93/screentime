@@ -1,12 +1,8 @@
-﻿using Xunit;
-using ScreenTimeClient;
-using System;
-using System.Threading.Tasks;
+﻿using ScreenTimeClient;
 using Moq;
-using Microsoft.Extensions;
 using Microsoft.Extensions.Time.Testing;
-using Microsoft.VisualStudio.TestPlatform.CommunicationUtilities;
 using ScreenTimeClient.Configuration;
+using ScreenTime.Common;
 
 namespace ScreenTimeTest
 {
