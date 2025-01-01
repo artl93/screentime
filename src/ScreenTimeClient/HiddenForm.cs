@@ -130,7 +130,8 @@ namespace ScreenTimeClient
 
             if (_enableOnline)
             {
-                if (!this.remoteState.IsLoggedIn)
+                ;
+                if (this.remoteState.LoginAsync(silent: true).GetAwaiter().GetResult())
                 {
                     UpdateForLogin(this.remoteState.GetUsernameAsync().GetAwaiter().GetResult());
                 }

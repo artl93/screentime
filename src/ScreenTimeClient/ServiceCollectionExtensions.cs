@@ -1,5 +1,6 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Hosting;
 using ScreenTimeClient.Configuration;
 
 namespace ScreenTimeClient
@@ -36,12 +37,15 @@ namespace ScreenTimeClient
                     sp.GetRequiredService<IUserConfigurationReader>(),
                     sp.GetRequiredService<TimeProvider>()));
 
+            services.AddSingleton<RemoteUserConfigurationProvider>();
+
             services.AddSingleton((sp) =>
             {
                 return new SwitchableUserConfigurationProvider(
-                    sp.GetRequiredService<RemoteUserConfigurationProvider>(), 
+                    sp.GetRequiredService<RemoteUserConfigurationProvider>(),
                     sp.GetRequiredService<LocalUserConfigurationProvider>());
             });
+
 
             services.AddSingleton<IUserConfigurationProvider>((sp) =>
             {
@@ -50,16 +54,9 @@ namespace ScreenTimeClient
                 return sp.GetRequiredService<LocalUserConfigurationProvider>();
             });
 
-            services.AddSingleton((sp) => 
-            { 
-                return new RemoteUserConfigurationProvider(
-                    sp.GetRequiredService<HttpClient>(),
-                    sp.GetRequiredService<ILogger<RemoteUserConfigurationProvider>>()); 
-            });
 
             services.AddSingleton<IUserConfigurationReader, UserConfigurationRegistryReader>();
 
-   
             return services;
         }
 
@@ -83,17 +80,14 @@ namespace ScreenTimeClient
 
         public static IServiceCollection AddHttpClientConfiguration(this IServiceCollection services, string[] args)
         {
-            services.AddHttpClient("screentimeClient", client =>
+            services.AddHttpClient("shared", client =>
             {
-                client.Timeout = TimeSpan.FromSeconds(10);
-                client.DefaultRequestHeaders.Accept.Clear();
+                client.Timeout = TimeSpan.FromSeconds(args.Contains("develop") ? 10 : 20);
+                client.BaseAddress = args.Contains("develop") ? new Uri("https://localhost:7115") : new Uri("https://screentime.azurewebsites.net");
                 client.DefaultRequestHeaders.Accept.Add(new System.Net.Http.Headers.MediaTypeWithQualityHeaderValue("application/json"));
                 client.DefaultRequestHeaders.Add("User-Agent", "ScreenTime");
-                client.BaseAddress = args.Contains("local") ? new Uri("http://localhost:7115") : new Uri("https://screentime.azurewebsites.net");
-            })
-            .AddStandardResilienceHandler();
+            });
             return services;
         }
-
     }
 }

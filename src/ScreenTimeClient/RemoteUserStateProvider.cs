@@ -2,17 +2,30 @@
 using Microsoft.Extensions.Logging;
 using Microsoft.Identity.Client;
 using Microsoft.Identity.Client.Extensions.Msal;
+using ScreenTime.Common;
 using System.Diagnostics;
 using System.Net.Http.Headers;
+using System.Text;
+using System.Text.Json;
 
 namespace ScreenTimeClient
 {
-    public class RemoteUserStateProvider(HttpClient httpClient, ILogger logger)
+    public class RemoteUserStateProvider(IHttpClientFactory httpClientFactory, ILogger<RemoteUserStateProvider> logger) : IDisposable
     {
         private const string cacheFileExtension = ".msalcache.bin";
-        HttpClient httpClient = httpClient;
-        ILogger logger = logger;
+        private readonly HttpClient httpClient = httpClientFactory.CreateClient("shared");
+        private readonly ILogger logger = logger;
         private IPublicClientApplication? publicClientApp;
+        const string configUrl = "/configuration";
+        const string extensionUrl = "/extensions/request";
+        const string profileUrl = "/profile/";
+        const string heartbeatUrl = "heartbeat";
+
+        private readonly JsonSerializerOptions options = new()
+        {
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+            WriteIndented = true
+        };
 
         public bool IsLoggedIn { get; private set; } = false;
 
@@ -28,9 +41,9 @@ namespace ScreenTimeClient
             try
             {
                 if (accounts.Any())
-                    result = await app.AcquireTokenSilent(scopes, accounts.FirstOrDefault()).ExecuteAsync();
+                    result = app.AcquireTokenSilent(scopes, accounts.FirstOrDefault()).ExecuteAsync().Result;
                 else if (!silent)
-                    result = await app.AcquireTokenInteractive(scopes).ExecuteAsync();
+                    result = app.AcquireTokenInteractive(scopes).ExecuteAsync().Result;
 ;
                 if (result != null)
                 {
@@ -113,5 +126,34 @@ namespace ScreenTimeClient
             return "(Invalid username)";
         }
 
+        internal async Task<UserConfiguration> GetConfigurationAsync()
+        {
+            var response = await httpClient.GetAsync(configUrl);
+            response.EnsureSuccessStatusCode();
+            var content = await response.Content.ReadAsStringAsync();
+            return JsonSerializer.Deserialize<UserConfiguration>(content, options) ?? new UserConfiguration("default");
+
+        }
+
+        internal async Task SendHeartbeatAsync(Heartbeat heartbeat)
+        {
+            try
+            {
+                var json = JsonSerializer.Serialize(heartbeat, options);
+                var content = new StringContent(json, Encoding.UTF8, "application/json");
+                var response = await httpClient.PutAsync(heartbeatUrl, content);
+                response.EnsureSuccessStatusCode();
+            }
+            catch (Exception e)
+            {
+                logger.LogError(e, e.Message);
+            }
+
+
+        }
+        public void Dispose()
+        {
+            ((IDisposable)httpClient).Dispose();
+        }
     }
 }

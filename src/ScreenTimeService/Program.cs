@@ -1,9 +1,11 @@
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Identity.Abstractions;
 using Microsoft.Identity.Web;
 using Microsoft.Identity.Web.Resource;
+using ScreenTime.Common;
 using System.Reflection.Metadata.Ecma335;
 using System.Security.Claims;
 
@@ -39,28 +41,7 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 var scopeRequiredByApi = app.Configuration["AzureAd:Scopes"] ?? "";
-var summaries = new[]
-{
-    "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
-};
 
-app.MapGet("/weatherforecast", (HttpContext httpContext) =>
-{
-    httpContext.VerifyUserHasAnyAcceptedScope(scopeRequiredByApi);
-
-    var forecast = Enumerable.Range(1, 5).Select(index =>
-        new WeatherForecast
-        (
-            DateOnly.FromDateTime(DateTime.Now.AddDays(index)),
-            Random.Shared.Next(-20, 55),
-            summaries[Random.Shared.Next(summaries.Length)]
-        ))
-        .ToArray();
-    return forecast;
-})
-.WithName("GetWeatherForecast")
-.WithOpenApi()
-.RequireAuthorization();
 
 var requests = new Queue<(ClaimsPrincipal, int)>
 {
@@ -79,9 +60,9 @@ app.MapPut("/request/{minutes}", (int minutes, HttpContext httpContext) =>
     .WithOpenApi()
     .RequireAuthorization();
 
-app.MapPut("/grant/{userId}/{minutes}", (string userId, int minutes, HttpContext httpcontext) =>
+app.MapPut("/grant/{userId}/{minutes}", (string userId, int minutes, HttpContext httpContext) =>
 {
-    httpcontext.VerifyUserHasAnyAcceptedScope(scopeRequiredByApi);
+    httpContext.VerifyUserHasAnyAcceptedScope(scopeRequiredByApi);
     var user = new ClaimsPrincipal(new ClaimsIdentity(new[] { new Claim(ClaimTypes.Name, userId) }));
     var request = requests.FirstOrDefault(r => r.Item1 == user);
     if (request != default)
@@ -96,11 +77,60 @@ app.MapPut("/grant/{userId}/{minutes}", (string userId, int minutes, HttpContext
     .WithOpenApi()
     .RequireAuthorization();
 
+
+app.MapPut("/reject/{userId}", (string userId, HttpContext httpContext) =>
+{
+    httpContext.VerifyUserHasAnyAcceptedScope(scopeRequiredByApi);
+    var user = new ClaimsPrincipal(new ClaimsIdentity(new[] { new Claim(ClaimTypes.Name, userId) }));
+    var request = requests.FirstOrDefault(r => r.Item1 == user);
+    if (request != default)
+    {
+        requests = new Queue<(ClaimsPrincipal, int)>(requests.Where(r => r != request));
+        // get the total of all requests 
+        var totalMinutes = requests.Sum(r => r.Item2);
+        return Results.Ok(totalMinutes);
+    }
+    return Results.NotFound();
+})
+    .WithOpenApi()
+    .RequireAuthorization();
+
+
+app.MapGet("/pending/{userId}", (string userId, HttpContext httpContext) =>
+{
+    httpContext.VerifyUserHasAnyAcceptedScope(scopeRequiredByApi);
+    var user = new ClaimsPrincipal(new ClaimsIdentity(new[] { new Claim(ClaimTypes.Name, userId) }));
+    var totalMinutes = requests.Where(r => r.Item1 == user).Sum(r => r.Item2);
+    return Results.Ok(totalMinutes);
+})
+    .WithOpenApi()
+    .RequireAuthorization();
+
 app.MapGet("/pending", (HttpContext httpContext) => requests)
     .WithOpenApi()
-    // .RequireAuthorization()
-    ;
+    .RequireAuthorization();
 
+app.MapGet("/configuration", () => Results.Ok(scopeRequiredByApi))
+    .WithOpenApi()
+    .RequireAuthorization();
+
+
+var heartbeats = new List<(string, Heartbeat)>() { };
+
+app.MapPut("/heartbeat", (HttpContext httpContext, Heartbeat heartbeat) =>
+{
+    httpContext.VerifyUserHasAnyAcceptedScope(scopeRequiredByApi);
+    var nameIdentifier = httpContext.User.GetNameIdentifierId();
+    if (nameIdentifier == null)
+        return Results.Unauthorized();
+
+   
+    heartbeats.Add((nameIdentifier, heartbeat));
+
+    return Results.Ok();
+})
+    .WithOpenApi()
+    .RequireAuthorization();
 
 //app.MapPost("/logout", async (SignInManager<IdentityUser> signInManager,
 //    [Microsoft.AspNetCore.Mvc.FromBody] object empty) =>
@@ -117,7 +147,3 @@ app.MapGet("/pending", (HttpContext httpContext) => requests)
 
 app.Run();
 
-internal record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)
-{
-    public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);
-}

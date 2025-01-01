@@ -77,10 +77,10 @@ namespace ScreenTimeClient.Configuration
             return localProvider.RequestExtensionAsync(v);
         }
 
-        public async Task SendHeartbeatAsync(DateTimeOffset timestamp, TimeSpan duration)
+        public async Task SendHeartbeatAsync(Heartbeat heartbeat)
         {
-            await localProvider.SendHeartbeatAsync(timestamp, duration).ConfigureAwait(false);
-            await remoteProvider.SendHeartbeatAsync(timestamp, duration).ConfigureAwait(false);
+            await localProvider.SendHeartbeatAsync(heartbeat); //.ConfigureAwait(false);
+            await remoteProvider.SendHeartbeatAsync(heartbeat); // .ConfigureAwait(false);
 
         }
     }

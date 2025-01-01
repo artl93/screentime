@@ -5,33 +5,19 @@ using ScreenTime.Common;
 
 namespace ScreenTimeClient.Configuration
 {
-    public class RemoteUserConfigurationProvider(HttpClient httpClient, ILogger logger) : IUserConfigurationProvider, IDisposable
+    public class RemoteUserConfigurationProvider(RemoteUserStateProvider connectionProvider, ILogger<RemoteUserConfigurationProvider> logger) : IUserConfigurationProvider, IDisposable
     {
-        private readonly HttpClient httpClient = httpClient;
-        const string configUrl = "/configuration/";
-        const string extensionUrl = "/extensions/request";
-        const string profileUrl = "/profile/";
-        const string heartbeatUrl = "/heartbeat/";
+        private readonly ILogger logger = logger;
+        private readonly RemoteUserStateProvider connectionProvider = connectionProvider;
 
-        ILogger logger = logger;
-
-        private readonly JsonSerializerOptions options = new()
-        {
-            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-            WriteIndented = true
-        };
 
         private UserConfiguration? userConfigurationCache = null;
-        private bool disposedValue;
         public event EventHandler<UserConfigurationEventArgs>? OnConfigurationChanged;
         public event EventHandler<UserConfigurationResponseEventArgs>? OnExtensionResponse;
 
-        public async Task<UserConfiguration?> GetConfigurationAsync()
+        public Task<UserConfiguration> GetConfigurationAsync()
         {
-            var response = await httpClient.GetAsync(configUrl);
-            response.EnsureSuccessStatusCode();
-            var content = await response.Content.ReadAsStringAsync();
-            return JsonSerializer.Deserialize<UserConfiguration>(content, options);
+            return connectionProvider.GetConfigurationAsync();
         }
 
         public async Task<UserConfiguration> GetUserConfigurationForDayAsync()
@@ -68,39 +54,21 @@ namespace ScreenTimeClient.Configuration
             SaveUserConfigurationForDayAsync(newConfiguration).Wait();
             OnExtensionResponse?.Invoke(this, new(this, minutes));
         }
-        protected virtual void Dispose(bool disposing)
-        {
-            if (!disposedValue)
-            {
-                if (disposing)
-                {
-                    httpClient.Dispose();
-                }
-                disposedValue = true;
-            }
-        }
-        public void Dispose()
-        {
-            Dispose(disposing: true);
-            GC.SuppressFinalize(this);
-        }
 
         public Task RequestExtensionAsync(int v)
         {
             throw new NotImplementedException();
         }
 
-        public async Task SendHeartbeatAsync(DateTimeOffset timestamp, TimeSpan duration)
+        public async Task SendHeartbeatAsync(Heartbeat heartbeat)
         {
-            var heartbeat = new Heartbeat
-            {
-                Timestamp = timestamp,
-                Duration = duration
-            };
-            var json = JsonSerializer.Serialize(heartbeat, options);
-            var content = new StringContent(json, Encoding.UTF8, "application/json");
-            var response = await httpClient.PostAsync(heartbeatUrl, content);
-            response.EnsureSuccessStatusCode();
+            await connectionProvider.SendHeartbeatAsync(heartbeat);
+        }
+
+        public void Dispose()
+        {
+            ((IDisposable)connectionProvider).Dispose();
+
         }
     }
 }

@@ -84,7 +84,7 @@ namespace ScreenTimeClient
 
         private void LogHeartbeat(object? state) { 
             logger?.LogInformation("Heartbeat - Duration: {Duration}", duration);
-            userConfigurationProvider.SendHeartbeatAsync(timeProvider.GetUtcNow(), duration);
+            userConfigurationProvider.SendHeartbeatAsync(new Heartbeat (timeProvider.GetUtcNow(), duration, lastUserState));
         }
 
         public Task StopAsync(CancellationToken cancellationToken)

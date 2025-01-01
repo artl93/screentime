@@ -36,6 +36,7 @@ static class Program
 
     public static IServiceProvider? ServiceProvider { get; private set; }
 
+
     static IHostBuilder CreateHostBuilder(string[] args)
     {
         var builder = Host.CreateDefaultBuilder(args)
@@ -51,15 +52,16 @@ static class Program
                 services.AddHttpClientConfiguration(args);
                 services.AddSingleton<UserStateRegistryProvider>();
                 services.AddSingleton<SystemLockStateService>();
-                services.AddSingleton((sp) => new RemoteUserStateProvider(
-                    sp.GetRequiredService<HttpClient>(), 
-                    sp.GetRequiredService<ILogger<RemoteUserStateProvider>>()));
+                services.AddSingleton<RemoteUserStateProvider>();
                 services.AddSingleton((sp) => new HiddenForm(
                     sp.GetRequiredService<IScreenTimeStateClient>(),
                     sp.GetRequiredService<SystemLockStateService>(),
                     sp.GetRequiredService<IUserConfigurationProvider>(),
                     sp.GetRequiredService<RemoteUserStateProvider>(),
                     sp.GetRequiredService<ILogger<HiddenForm>>()));
+                services.AddLogging();
+
+
             });
             
          return builder;

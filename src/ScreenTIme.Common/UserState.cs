@@ -1,5 +1,8 @@
-﻿namespace ScreenTime.Common
+﻿using System.Text.Json.Serialization;
+
+namespace ScreenTime.Common
 {
-    public enum UserState { Okay, Warn, Error, Lock, Paused, Invalid }
+    [JsonConverter(typeof(JsonStringEnumConverter))]
+    public enum UserState { Invalid, Okay, Warn, Error, Lock, Paused }
 
 }

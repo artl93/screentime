@@ -106,7 +106,7 @@ namespace ScreenTimeClient.Configuration
             throw new NotImplementedException();
         }
 
-        public Task SendHeartbeatAsync(DateTimeOffset timestamp, TimeSpan duration)
+        public Task SendHeartbeatAsync(Heartbeat _)
         {
             // goes nowhere, does nothing
             return Task.CompletedTask;
