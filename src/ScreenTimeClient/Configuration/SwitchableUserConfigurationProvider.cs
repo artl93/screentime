@@ -73,5 +73,12 @@
         {
             return backupProvider.RequestExtensionAsync(v);
         }
+
+        public async Task SendHeartbeatAsync(DateTimeOffset timestamp, TimeSpan duration)
+        {
+            await backupProvider.SendHeartbeatAsync(timestamp, duration).ConfigureAwait(false);
+            await backupProvider.SendHeartbeatAsync(timestamp, duration).ConfigureAwait(false);
+
+        }
     }
 }

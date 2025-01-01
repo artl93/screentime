@@ -83,7 +83,10 @@ namespace ScreenTimeClient
             configuration = newConfiguration;
         }
 
-        private void LogHeartbeat(object? state) => logger?.LogInformation("Heartbeat - Duration: {Duration}", duration);
+        private void LogHeartbeat(object? state) { 
+            logger?.LogInformation("Heartbeat - Duration: {Duration}", duration);
+            userConfigurationProvider.SendHeartbeatAsync(timeProvider.GetUtcNow(), duration);
+        }
 
         public Task StopAsync(CancellationToken cancellationToken)
         {

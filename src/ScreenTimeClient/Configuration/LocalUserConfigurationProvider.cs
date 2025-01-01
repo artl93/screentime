@@ -103,5 +103,11 @@
         {
             throw new NotImplementedException();
         }
+
+        public Task SendHeartbeatAsync(DateTimeOffset timestamp, TimeSpan duration)
+        {
+            // goes nowhere, does nothing
+            return Task.CompletedTask;
+        }
     }
 }

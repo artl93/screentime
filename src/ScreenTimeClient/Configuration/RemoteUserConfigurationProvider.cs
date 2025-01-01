@@ -7,9 +7,10 @@ namespace ScreenTimeClient.Configuration
     public class RemoteUserConfigurationProvider(HttpClient httpClient, ILogger logger) : IUserConfigurationProvider, IDisposable
     {
         private readonly HttpClient httpClient = httpClient;
-        const string configUrl = "configration/";
-        const string extensionUrl = "extensions/request/{0}";
-        const string profleUrl = "profile/";
+        const string configUrl = "/configuration/";
+        const string extensionUrl = "/extensions/request";
+        const string profileUrl = "/profile/";
+        const string heartbeatUrl = "/heartbeat/";
 
         ILogger logger = logger;
 
@@ -87,5 +88,24 @@ namespace ScreenTimeClient.Configuration
         {
             throw new NotImplementedException();
         }
+
+        public async Task SendHeartbeatAsync(DateTimeOffset timestamp, TimeSpan duration)
+        {
+            var heartbeat = new Heartbeat
+            {
+                Timestamp = timestamp,
+                Duration = duration
+            };
+            var json = JsonSerializer.Serialize(heartbeat, options);
+            var content = new StringContent(json, Encoding.UTF8, "application/json");
+            var response = await httpClient.PostAsync(heartbeatUrl, content);
+            response.EnsureSuccessStatusCode();
+        }
+    }
+
+    public class Heartbeat
+    {
+        public DateTimeOffset Timestamp { get; init; }
+        public TimeSpan Duration { get; init; }
     }
 }

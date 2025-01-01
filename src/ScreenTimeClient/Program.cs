@@ -43,7 +43,7 @@ static class Program
             .ConfigureServices((hostContext, services) =>
             {
                 services.AddHostedServices();
-                services.AddScreenTimeClient(args);
+                services.AddScreenTimeClient();
                 services.AddUserConfiguration(args);
                 services.AddLoggingConfiguration();
                 services.AddSingleton<SystemStateEventHandlers>();

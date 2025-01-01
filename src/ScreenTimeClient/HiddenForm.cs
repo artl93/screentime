@@ -171,8 +171,7 @@ namespace ScreenTimeClient
 
         private async Task<bool> DoLoginAsync()
         {
-            bool loggedIn = false;
-            loggedIn = await remoteState.LoginAsync(silent: false);
+            var loggedIn = await remoteState.LoginAsync(silent: false);
 
             if (loggedIn)
             { 

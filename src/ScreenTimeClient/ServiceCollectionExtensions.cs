@@ -14,7 +14,7 @@ namespace ScreenTimeClient
             return services;
         }
 
-        public static IServiceCollection AddScreenTimeClient(this IServiceCollection services, string[] args)
+        public static IServiceCollection AddScreenTimeClient(this IServiceCollection services)
         {
             services.AddSingleton(serviceProvider =>
             {

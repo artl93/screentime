@@ -10,5 +10,6 @@
         public void ResetExtensions();
         public void AddExtension(DateTimeOffset date, int minutes);
         public Task RequestExtensionAsync(int v);
+        public Task SendHeartbeatAsync(DateTimeOffset timestamp, TimeSpan duration);
     }
 }

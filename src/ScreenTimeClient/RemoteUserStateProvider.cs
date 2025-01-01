@@ -9,6 +9,7 @@ namespace ScreenTimeClient
 {
     public class RemoteUserStateProvider(HttpClient httpClient, ILogger logger)
     {
+        private const string cacheFileExtension = ".msalcache.bin";
         HttpClient httpClient = httpClient;
         ILogger logger = logger;
         private IPublicClientApplication? publicClientApp;
@@ -89,7 +90,7 @@ namespace ScreenTimeClient
         private static async Task<MsalCacheHelper> CreateCacheHelperAsync()
         {
             var storageProperties = new StorageCreationPropertiesBuilder(
-                              System.Reflection.Assembly.GetExecutingAssembly().GetName().Name + ".msalcache.bin",
+                              System.Reflection.Assembly.GetExecutingAssembly().GetName().Name + cacheFileExtension,
                               MsalCacheHelper.UserRootDirectory)
                                 .Build();
 
