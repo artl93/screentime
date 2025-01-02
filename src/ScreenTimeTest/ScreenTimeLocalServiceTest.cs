@@ -74,7 +74,7 @@ namespace ScreenTimeTest
 
             var userStateProvider = new FakeUserStateProvider(lastKnownDate, lastDuration);
 
-            var mockUserConfiguration = new UserConfiguration("test", ResetTime: resetTime);
+            var mockUserConfiguration = new UserConfiguration(ResetTime: resetTime);
             Moq.Mock<IUserConfigurationProvider> mockUserConfigurationProvider = new();
             mockUserConfigurationProvider.Setup(m => m.GetUserConfigurationForDayAsync()).ReturnsAsync(mockUserConfiguration);
             Moq.Mock<IIdleTimeDetector> mockIdleTimeDetector = new();
@@ -144,7 +144,7 @@ namespace ScreenTimeTest
 
             var userStateProvider = new FakeUserStateProvider(timeProvider);
 
-            var mockUserConfiguration = new UserConfiguration("test");
+            var mockUserConfiguration = new UserConfiguration();
             Moq.Mock<IUserConfigurationProvider> mockUserConfigurationProvider = new();
             mockUserConfigurationProvider.Setup(m => m.GetUserConfigurationForDayAsync()).ReturnsAsync(mockUserConfiguration);
             Moq.Mock<IIdleTimeDetector> mockIdleTimeDetector = new();
@@ -195,7 +195,7 @@ namespace ScreenTimeTest
             timeProvider.SetLocalTimeZone(TimeZoneInfo.FindSystemTimeZoneById("America/Los_Angeles"));
 
             var userStateProvider = new FakeUserStateProvider(start.ToString(), "00:00:00");
-            var mockUserConfiguration = new UserConfiguration("test");
+            var mockUserConfiguration = new UserConfiguration();
             Moq.Mock<IUserConfigurationProvider> mockUserConfigurationProvider = new();
             mockUserConfigurationProvider.Setup(m => m.GetUserConfigurationForDayAsync()).ReturnsAsync(mockUserConfiguration);
             Moq.Mock<IIdleTimeDetector> mockIdleTimeDetector = new();
@@ -221,7 +221,7 @@ namespace ScreenTimeTest
             FakeTimeProvider timeProvider = new(start);
             timeProvider.SetLocalTimeZone(TimeZoneInfo.FindSystemTimeZoneById("America/Los_Angeles"));
             var userStateProvider = new FakeUserStateProvider(start.ToString(), "00:00:00");
-            var mockUserConfiguration = new UserConfiguration("test");
+            var mockUserConfiguration = new UserConfiguration();
             Moq.Mock<IUserConfigurationProvider> mockUserConfigurationProvider = new();
             mockUserConfigurationProvider.Setup(m => m.GetUserConfigurationForDayAsync()).ReturnsAsync(mockUserConfiguration);
             Moq.Mock<IIdleTimeDetector> mockIdleTimeDetector = new();
@@ -244,7 +244,7 @@ namespace ScreenTimeTest
             FakeTimeProvider timeProvider = new(start);
             timeProvider.SetLocalTimeZone(TimeZoneInfo.FindSystemTimeZoneById("America/Los_Angeles"));
             var userStateProvider = new FakeUserStateProvider(start.ToString(), "00:00:00");
-            var mockUserConfiguration = new UserConfiguration("test");
+            var mockUserConfiguration = new UserConfiguration();
             Moq.Mock<IUserConfigurationProvider> mockUserConfigurationProvider = new();
             mockUserConfigurationProvider.Setup(m => m.GetUserConfigurationForDayAsync()).ReturnsAsync(mockUserConfiguration);
             Moq.Mock<IIdleTimeDetector> mockIdleTimeDetector = new();
@@ -267,7 +267,7 @@ namespace ScreenTimeTest
             FakeTimeProvider timeProvider = new(start);
             timeProvider.SetLocalTimeZone(TimeZoneInfo.FindSystemTimeZoneById("America/Los_Angeles"));
             var userStateProvider = new FakeUserStateProvider(start.ToString(), "00:00:00");
-            var mockUserConfiguration = new UserConfiguration("test");
+            var mockUserConfiguration = new UserConfiguration();
             Moq.Mock<IUserConfigurationProvider> mockUserConfigurationProvider = new();
             mockUserConfigurationProvider.Setup(m => m.GetUserConfigurationForDayAsync()).ReturnsAsync(mockUserConfiguration);
             Moq.Mock<IIdleTimeDetector> mockIdleTimeDetector = new();
@@ -290,8 +290,8 @@ namespace ScreenTimeTest
             FakeTimeProvider timeProvider = new(start);
             timeProvider.SetLocalTimeZone(TimeZoneInfo.FindSystemTimeZoneById("America/Los_Angeles"));
             var userStateProvider = new FakeUserStateProvider(start.ToString(), "00:00:00");
-            var configurationA = new UserConfiguration("testA");
-            var configurationB = new UserConfiguration("testB", DailyLimitMinutes: 145);
+            var configurationA = new UserConfiguration();
+            var configurationB = new UserConfiguration(DailyLimitMinutes: 145);
 
             LocalUserConfigurationProvider provider = new(new MockUserConfigurationReader(configurationA), timeProvider);
             Moq.Mock<IIdleTimeDetector> mockIdleTimeDetector = new();
@@ -323,7 +323,7 @@ namespace ScreenTimeTest
             FakeTimeProvider timeProvider = new(start);
             timeProvider.SetLocalTimeZone(TimeZoneInfo.FindSystemTimeZoneById("America/Los_Angeles"));
             var userStateProvider = new FakeUserStateProvider(start.ToString(), "00:00:00");
-            var configurationA = new UserConfiguration("testA");
+            var configurationA = new UserConfiguration();
 
             LocalUserConfigurationProvider provider = new(new MockUserConfigurationReader(configurationA), timeProvider);
             Moq.Mock<IIdleTimeDetector> mockIdleTimeDetector = new();
@@ -373,7 +373,7 @@ namespace ScreenTimeTest
             FakeTimeProvider timeProvider = new(start);
             timeProvider.SetLocalTimeZone(TimeZoneInfo.FindSystemTimeZoneById("America/Los_Angeles"));
             var userStateProvider = new FakeUserStateProvider(start.ToString(), "00:00:00");
-            var configurationA = new UserConfiguration("testA");
+            var configurationA = new UserConfiguration();
 
             LocalUserConfigurationProvider provider = new(new MockUserConfigurationReader(configurationA), timeProvider);
             Moq.Mock<IIdleTimeDetector> mockIdleTimeDetector = new();
@@ -432,7 +432,7 @@ namespace ScreenTimeTest
             FakeTimeProvider timeProvider = new(start);
             timeProvider.SetLocalTimeZone(TimeZoneInfo.FindSystemTimeZoneById("America/Los_Angeles"));
             var userStateProvider = new FakeUserStateProvider(start.ToString(), "00:00:00");
-            var configurationA = new UserConfiguration("testA");
+            var configurationA = new UserConfiguration();
             UserConfiguration? configurationB;
 
             LocalUserConfigurationProvider provider = new(new MockUserConfigurationReader(configurationA), timeProvider);
@@ -504,7 +504,7 @@ namespace ScreenTimeTest
             FakeTimeProvider timeProvider = new(start);
             timeProvider.SetLocalTimeZone(TimeProvider.System.LocalTimeZone);
             var userStateProvider = new FakeUserStateProvider(start.ToString(), "00:00:00");
-            var configurationA = new UserConfiguration("testA");
+            var configurationA = new UserConfiguration();
 
             LocalUserConfigurationProvider provider = new(new MockUserConfigurationReader(configurationA), timeProvider);
             Moq.Mock<IIdleTimeDetector> mockIdleTimeDetector = new();

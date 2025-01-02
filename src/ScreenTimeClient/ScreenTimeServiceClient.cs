@@ -131,7 +131,7 @@ namespace ScreenTimeClient
             var response = await httpClient.GetAsync(configUrl);
             response.EnsureSuccessStatusCode();
             var content = await response.Content.ReadAsStringAsync();
-            return JsonSerializer.Deserialize<UserConfiguration>(content, options) ?? new UserConfiguration("default");
+            return JsonSerializer.Deserialize<UserConfiguration>(content, options) ?? new UserConfiguration();
 
         }
 

@@ -3,7 +3,6 @@
 namespace ScreenTime.Common
 {
     public record class UserConfiguration(
-            string Name,
             int DailyLimitMinutes = 60,
             int WarningTimeMinutes = 10,
             int WarningIntervalSeconds = 60,
@@ -55,10 +54,6 @@ namespace ScreenTime.Common
         {
             // throw new Exception();
             if (other == null)
-            {
-                return false;
-            }
-            if (Name != other.Name)
             {
                 return false;
             }

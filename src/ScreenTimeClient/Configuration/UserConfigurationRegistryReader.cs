@@ -26,7 +26,7 @@ namespace ScreenTimeClient.Configuration
             var enableOnline = GetRegistryIntValue(_baseKey, "EnableOnline", 0) == 1; // convert to boolean
             delayLockSeconds = Math.Max(5, delayLockSeconds); // avoid pathologically low values
 
-            return new UserConfiguration(Environment.UserName, dailyLimit,
+            return new UserConfiguration(dailyLimit,
                 warningTime, warningInterval, graceMinutes, dailyResetString, disableLock, delayLockSeconds, enableOnline, extensions?.ToList());
 
         }

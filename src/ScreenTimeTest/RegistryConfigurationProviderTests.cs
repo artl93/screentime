@@ -15,7 +15,7 @@ namespace ScreenTimeTest
             using var _provider = new LocalUserConfigurationProvider(_mockReader.Object, _mockTimeProvider);
 
             // Arrange
-            var expectedConfig = new UserConfiguration("test");
+            var expectedConfig = new UserConfiguration();
             _mockReader.Setup(r => r.GetConfiguration()).Returns(expectedConfig);
 
             var result = await _provider.GetUserConfigurationForDayAsync();
@@ -27,9 +27,9 @@ namespace ScreenTimeTest
         [Fact]
         public async Task OnConfigurationChanged_EventNotTriggered()
         {
-            var configurationA = new UserConfiguration("testA");
-            var configurationB = new UserConfiguration("testA");
-            var expectedConfiguration = new UserConfiguration("testA");
+            var configurationA = new UserConfiguration();
+            var configurationB = new UserConfiguration();
+            var expectedConfiguration = new UserConfiguration();
             var _mockReader = new MockUserConfigurationReader(configurationA);
 
             var _mockTimeProvider = new FakeTimeProvider(DateTimeOffset.Parse("2024-12-25 00:00:00"));
@@ -50,9 +50,9 @@ namespace ScreenTimeTest
         [Fact]
         public async Task OnConfigurationChanged_EventTriggeredUsingSave()
         {
-            var configurationA = new UserConfiguration("testA");
-            var configurationB = new UserConfiguration("testB");
-            var expectedConfiguration = new UserConfiguration("testB");
+            var configurationA = new UserConfiguration();
+            var configurationB = new UserConfiguration(DailyLimitMinutes: 120);
+            var expectedConfiguration = new UserConfiguration(DailyLimitMinutes: 120);
             var _mockReader = new MockUserConfigurationReader(configurationA);
 
             var _mockTimeProvider = new FakeTimeProvider(DateTimeOffset.Parse("2024-12-25 00:00:00"));
@@ -73,9 +73,9 @@ namespace ScreenTimeTest
         [Fact]
         public async Task OnConfigurationChanged_EventTriggeredUsingWatcher()
         {
-            var configurationA = new UserConfiguration("testA");
-            var configurationB = new UserConfiguration("testB");
-            var expectedConfiguration = new UserConfiguration("testB");
+            var configurationA = new UserConfiguration();
+            var configurationB = new UserConfiguration(DailyLimitMinutes:120);
+            var expectedConfiguration = new UserConfiguration(DailyLimitMinutes: 120);
             var _mockReader = new MockUserConfigurationReader(configurationA);
 
             var _mockTimeProvider = new FakeTimeProvider(DateTimeOffset.Parse("2024-12-25 00:00:00"));
