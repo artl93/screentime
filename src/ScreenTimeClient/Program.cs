@@ -52,12 +52,12 @@ static class Program
                 services.AddHttpClientConfiguration(args);
                 services.AddSingleton<UserStateRegistryProvider>();
                 services.AddSingleton<SystemLockStateService>();
-                services.AddSingleton<RemoteUserStateProvider>();
+                services.AddSingleton<ScreenTimeServiceClient>();
                 services.AddSingleton((sp) => new HiddenForm(
                     sp.GetRequiredService<IScreenTimeStateClient>(),
                     sp.GetRequiredService<SystemLockStateService>(),
                     sp.GetRequiredService<IUserConfigurationProvider>(),
-                    sp.GetRequiredService<RemoteUserStateProvider>(),
+                    sp.GetRequiredService<ScreenTimeServiceClient>(),
                     sp.GetRequiredService<ILogger<HiddenForm>>()));
                 services.AddLogging();
 

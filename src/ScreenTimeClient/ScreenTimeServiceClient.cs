@@ -1,169 +1,159 @@
-﻿using System.Text.Json;
+﻿
+using Microsoft.Extensions.Logging;
+using Microsoft.Identity.Client;
+using Microsoft.Identity.Client.Extensions.Msal;
 using ScreenTime.Common;
+using System.Diagnostics;
+using System.Net.Http.Headers;
+using System.Text;
+using System.Text.Json;
 
 namespace ScreenTimeClient
 {
-    /// <summary>
-    /// A client for the ScreenTimeService
-    /// 
-    /// </summary>
-    internal class ScreenTimeServiceClient(HttpClient client) : IScreenTimeStateClient, IDisposable
+    public class ScreenTimeServiceClient(IHttpClientFactory httpClientFactory, ILogger<ScreenTimeServiceClient> logger) : IDisposable
     {
-        enum State
-        {
-            active,
-            inactive
-        }
+        private const string cacheFileExtension = ".msalcache.bin";
+        private readonly HttpClient httpClient = httpClientFactory.CreateClient("shared");
+        private readonly ILogger logger = logger;
+        private IPublicClientApplication? publicClientApp;
+        const string configUrl = "/configuration";
+        const string extensionUrl = "/extensions/request";
+        const string profileUrl = "/profile/";
+        const string heartbeatUrl = "heartbeat";
 
-        State currentState = State.inactive;
-
-        readonly JsonSerializerOptions options = new()
+        private readonly JsonSerializerOptions options = new()
         {
-            PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+            WriteIndented = true
         };
-        private bool disposedValue;
-        private readonly HttpClient _client = client;
 
-        public event EventHandler<MessageEventArgs>? OnDayRollover;
-        public event EventHandler<UserStatusEventArgs>? OnTimeUpdate;
-        public event EventHandler<UserStatusEventArgs>? OnUserStatusChanged;
-        public event EventHandler<MessageEventArgs>? OnMessageUpdate;
-        public event EventHandler<ComputerStateEventArgs>? EventHandlerEnsureComputerState;
+        public bool IsLoggedIn { get; private set; } = false;
 
-        public void StartSession(string _)
+        public async Task<bool> LoginAsync(bool silent = false)
         {
-            if (currentState == State.active)
-            {
-                return;
-            }
 
-            currentState = State.active;
-            // _ = _client.PutAsync($"events/start/{Environment.UserName}", null).;
-        }
+            var app = GetClientApp();
 
-        public async Task<UserConfiguration?> GetUserConfigurationAsync()
-        {
+            var accounts = await app.GetAccountsAsync();
+            var scopes = new string[] { "user.read", "api://b1982a95-6b93-46ca-844c-f0594227e2d7/access_as_user" };
+            AuthenticationResult? result = null;
+
             try
             {
-                var response = await _client.GetAsync($"configuration/{Environment.UserName}");
-                var message = await response.Content.ReadAsStringAsync();
-                return JsonSerializer.Deserialize<UserConfiguration>(message, options);
+                if (accounts.Any())
+                    result = app.AcquireTokenSilent(scopes, accounts.FirstOrDefault()).ExecuteAsync().Result;
+                else if (!silent)
+                    result = app.AcquireTokenInteractive(scopes).ExecuteAsync().Result;
+;
+                if (result != null)
+                {
+                    logger?.LogInformation("Login result: {Result}", result);
+                    var token = result.AccessToken;
+                    if (result != null && !string.IsNullOrEmpty(token))
+                    {
+                        httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+                        IsLoggedIn = true;
+                        return true;
+                    }
+                }
             }
             catch (Exception e)
             {
-                System.Diagnostics.Debug.WriteLine(e);
-                return null;
+                logger?.LogError(e, "Login error: {Message}", e.Message);
             }
+            return false;
+
         }
 
-        public void EndSession(string _)
+        public async Task LogoutAsync()
         {
-            if (currentState == State.inactive)
+            var app = GetClientApp();
+            var accounts = await app.GetAccountsAsync();
+            foreach (var account in accounts)
             {
-                return;
+                await app.RemoveAsync(account);
             }
-            currentState = State.inactive;
-            // _ = await _client.PutAsync($"events/end/{Environment.UserName}", null);
+            IsLoggedIn = false;
+
+            httpClient.DefaultRequestHeaders.Authorization = null;  
         }
 
-        public async Task<UserStatus?> GetInteractiveTimeAsync()
-        {
-            var response = await _client.GetAsync($"status/{Environment.UserName}");
-            var message = await response.Content.ReadAsStringAsync();
-            return JsonSerializer.Deserialize<UserStatus>(message, options);
-        }
 
-        public async Task<UserMessage?> GetMessage()
+        private IPublicClientApplication GetClientApp()
         {
-            var messageResponse = await _client.GetAsync($"message/{Environment.UserName}");
-            var message = await messageResponse.Content.ReadAsStringAsync();
-            return JsonSerializer.Deserialize<UserMessage>(message, options);
-        }
-
-        protected virtual void Dispose(bool disposing)
-        {
-            if (!disposedValue)
+            if (publicClientApp == null)
             {
-                if (disposing)
-                {
-                    // Dispose managed state (managed objects)
-                    _client.Dispose();
-                }
+                publicClientApp = PublicClientApplicationBuilder
+                    // .Create("b1982a95-6b93-46ca-844c-f0594227e2d7")
+                    .Create("4eb97520-4902-4817-ab35-ae38739253ba")
+                    .WithClientId("b1982a95-6b93-46ca-844c-f0594227e2d7")
+                    .WithAuthority("https://login.microsoftonline.com/4eb97520-4902-4817-ab35-ae38739253ba/")
+                    .WithDefaultRedirectUri()
+                    .WithClientName("ScreenTime taskbar client")
+                    .WithClientVersion(System.Reflection.Assembly.GetExecutingAssembly().GetName().Version?.ToString())
+                    .Build();
+                MsalCacheHelper cacheHelper = CreateCacheHelperAsync().GetAwaiter().GetResult();
 
-                // Free unmanaged resources (unmanaged objects) and override finalizer
-                // Set large fields to null
-                disposedValue = true;
+                // Let the cache helper handle MSAL's cache, otherwise the user will be prompted to sign-in every time.
+                cacheHelper.RegisterCache(publicClientApp.UserTokenCache);
             }
+            return publicClientApp;
         }
 
-        // // TODO: override finalizer only if 'Dispose(bool disposing)' has code to free unmanaged resources
-        // ~ScreenTimeServiceClient()
-        // {
-        //     // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
-        //     Dispose(disposing: false);
-        // }
+        private static async Task<MsalCacheHelper> CreateCacheHelperAsync()
+        {
+            var storageProperties = new StorageCreationPropertiesBuilder(
+                              System.Reflection.Assembly.GetExecutingAssembly().GetName().Name + cacheFileExtension,
+                              MsalCacheHelper.UserRootDirectory)
+                                .Build();
 
+            MsalCacheHelper cacheHelper = await MsalCacheHelper.CreateAsync(
+                        storageProperties,
+                        new TraceSource("MSAL.CacheTrace"))
+                     .ConfigureAwait(false);
+
+            return cacheHelper;
+        }
+
+        public async Task<string> GetUsernameAsync()
+        {
+            var app = GetClientApp();
+            var accounts = await app.GetAccountsAsync();
+            if (accounts.Any())
+            {
+                return accounts.First().Username;
+            }
+            return "(Invalid username)";
+        }
+
+        internal async Task<UserConfiguration> GetConfigurationAsync()
+        {
+            var response = await httpClient.GetAsync(configUrl);
+            response.EnsureSuccessStatusCode();
+            var content = await response.Content.ReadAsStringAsync();
+            return JsonSerializer.Deserialize<UserConfiguration>(content, options) ?? new UserConfiguration("default");
+
+        }
+
+        internal async Task SendHeartbeatAsync(Heartbeat heartbeat)
+        {
+            try
+            {
+                var json = JsonSerializer.Serialize(heartbeat, options);
+                var content = new StringContent(json, Encoding.UTF8, "application/json");
+                var response = await httpClient.PutAsync(heartbeatUrl, content);
+                response.EnsureSuccessStatusCode();
+            }
+            catch (Exception e)
+            {
+                logger.LogError(e, e.Message);
+            }
+
+
+        }
         public void Dispose()
         {
-            // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
-            Dispose(disposing: true);
-            GC.SuppressFinalize(this);
-        }
-
-        internal IScreenTimeStateClient SetBaseAddress(string v)
-        {
-            _client.BaseAddress = new Uri(v);
-            return this;
-        }
-
-        public void Reset()
-        {
-            throw new NotImplementedException();
-        }
-
-        public Task StartAsync(CancellationToken cancellationToken)
-        {
-            throw new NotImplementedException();
-        }
-
-        public Task StopAsync(CancellationToken cancellationToken)
-        {
-            throw new NotImplementedException();
-        }
-
-        public void EndSessionAsync(string reason)
-        {
-            throw new NotImplementedException();
-        }
-
-        public void StartSessionAsync(string reason)
-        {
-            throw new NotImplementedException();
-        }
-
-        public void RequestExtension(int minutes)
-        {
-            throw new NotImplementedException();
-        }
-
-        public Task RequestExtensionAsync(int minutes)
-        {
-            throw new NotImplementedException();
-        }
-
-        public Task ResetAsync()
-        {
-            throw new NotImplementedException();
-        }
-
-        public Task SaveCurrentConfigurationAsync()
-        {
-            throw new NotImplementedException();
-        }
-
-        public UserActivityState GetActivityState()
-        {
-            throw new NotImplementedException();
+            ((IDisposable)httpClient).Dispose();
         }
     }
 }

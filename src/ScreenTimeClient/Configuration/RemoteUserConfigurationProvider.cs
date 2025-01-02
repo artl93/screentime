@@ -5,10 +5,10 @@ using ScreenTime.Common;
 
 namespace ScreenTimeClient.Configuration
 {
-    public class RemoteUserConfigurationProvider(RemoteUserStateProvider connectionProvider, ILogger<RemoteUserConfigurationProvider> logger) : IUserConfigurationProvider, IDisposable
+    public class RemoteUserConfigurationProvider(ScreenTimeServiceClient connectionProvider, ILogger<RemoteUserConfigurationProvider> logger) : IUserConfigurationProvider, IDisposable
     {
         private readonly ILogger logger = logger;
-        private readonly RemoteUserStateProvider connectionProvider = connectionProvider;
+        private readonly ScreenTimeServiceClient serviceClient = connectionProvider;
 
 
         private UserConfiguration? userConfigurationCache = null;
@@ -17,7 +17,7 @@ namespace ScreenTimeClient.Configuration
 
         public Task<UserConfiguration> GetConfigurationAsync()
         {
-            return connectionProvider.GetConfigurationAsync();
+            return serviceClient.GetConfigurationAsync();
         }
 
         public async Task<UserConfiguration> GetUserConfigurationForDayAsync()
@@ -62,12 +62,12 @@ namespace ScreenTimeClient.Configuration
 
         public async Task SendHeartbeatAsync(Heartbeat heartbeat)
         {
-            await connectionProvider.SendHeartbeatAsync(heartbeat);
+            await serviceClient.SendHeartbeatAsync(heartbeat);
         }
 
         public void Dispose()
         {
-            ((IDisposable)connectionProvider).Dispose();
+            ((IDisposable)serviceClient).Dispose();
 
         }
     }

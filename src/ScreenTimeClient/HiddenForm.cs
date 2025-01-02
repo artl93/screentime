@@ -11,7 +11,7 @@ namespace ScreenTimeClient
     {
         private readonly NotifyIcon icon;
         private readonly ToolStripItem? usernameItem;
-        private readonly RemoteUserStateProvider remoteState;
+        private readonly ScreenTimeServiceClient serviceClient;
         private readonly ILogger? logger;
         private readonly IUserConfigurationProvider _userConfigurationProvider;
         private bool messageIsVisible = false;
@@ -29,10 +29,10 @@ namespace ScreenTimeClient
         public HiddenForm(IScreenTimeStateClient client,
             SystemLockStateService lockProvider,
             IUserConfigurationProvider userConfigurationProvider,
-            RemoteUserStateProvider remoteState,
+            ScreenTimeServiceClient serviceClient,
             ILogger? logger)
         {
-            this.remoteState = remoteState;
+            this.serviceClient = serviceClient;
             this.logger = logger;
             _userConfigurationProvider = userConfigurationProvider;
             var result = _userConfigurationProvider.GetUserConfigurationForDayAsync().Result;
@@ -131,9 +131,9 @@ namespace ScreenTimeClient
             if (_enableOnline)
             {
                 ;
-                if (this.remoteState.LoginAsync(silent: true).GetAwaiter().GetResult())
+                if (this.serviceClient.LoginAsync(silent: true).GetAwaiter().GetResult())
                 {
-                    UpdateForLogin(this.remoteState.GetUsernameAsync().GetAwaiter().GetResult());
+                    UpdateForLogin(this.serviceClient.GetUsernameAsync().GetAwaiter().GetResult());
                 }
                 else
                 {
@@ -170,11 +170,11 @@ namespace ScreenTimeClient
 
         private async Task<bool> DoLoginAsync()
         {
-            var loggedIn = await remoteState.LoginAsync(silent: false);
+            var loggedIn = await serviceClient.LoginAsync(silent: false);
 
             if (loggedIn)
             { 
-                UpdateForLogin(await remoteState.GetUsernameAsync());
+                UpdateForLogin(await serviceClient.GetUsernameAsync());
             }
             return loggedIn;
 
@@ -182,7 +182,7 @@ namespace ScreenTimeClient
 
         private async Task DoLogoutAsync()
         {
-            await remoteState.LogoutAsync();
+            await serviceClient.LogoutAsync();
             UpdateForLogout();
         }
 
