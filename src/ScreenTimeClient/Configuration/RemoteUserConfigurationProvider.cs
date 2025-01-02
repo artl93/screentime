@@ -39,7 +39,7 @@ namespace ScreenTimeClient.Configuration
                 return;
             }
             var newConfiguration = userConfigurationCache with { Extensions = [] };
-            await SaveUserConfigurationForDayAsync(newConfiguration);
+            SaveUserConfigurationForDayAsync(newConfiguration).Wait();
         }
 
         public void AddExtension(DateTimeOffset date, int minutes)
@@ -51,7 +51,7 @@ namespace ScreenTimeClient.Configuration
             var newExtensions = userConfigurationCache.Extensions?.ToList() ?? [];
             newExtensions.Add((date, minutes));
             var newConfiguration = userConfigurationCache with { Extensions = [.. newExtensions] };
-            await SaveUserConfigurationForDayAsync(newConfiguration);
+            SaveUserConfigurationForDayAsync(newConfiguration).Wait();
             OnExtensionResponse?.Invoke(this, new(this, minutes));
         }
 
