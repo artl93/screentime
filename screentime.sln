@@ -13,7 +13,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ScreenTimeService", "src\Sc
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ScreenTimeWebApp", "src\ScreenTimeWebApp\ScreenTimeWebApp.csproj", "{74824E5D-D706-4B15-8FAC-519481DFD92F}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ScreenTIme.Common", "src\ScreenTIme.Common\ScreenTIme.Common.csproj", "{7123C63B-9341-FCC6-F236-F06D8B356B34}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ScreenTime.Common", "src\ScreenTIme.Common\ScreenTime.Common.csproj", "{7123C63B-9341-FCC6-F236-F06D8B356B34}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
