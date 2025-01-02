@@ -39,7 +39,7 @@ namespace ScreenTimeClient.Configuration
                 return;
             }
             var newConfiguration = userConfigurationCache with { Extensions = [] };
-            SaveUserConfigurationForDayAsync(newConfiguration).Wait();
+            await SaveUserConfigurationForDayAsync(newConfiguration);
         }
 
         public void AddExtension(DateTimeOffset date, int minutes)
