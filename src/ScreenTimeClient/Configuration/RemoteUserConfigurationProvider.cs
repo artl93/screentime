@@ -51,7 +51,7 @@ namespace ScreenTimeClient.Configuration
             var newExtensions = userConfigurationCache.Extensions?.ToList() ?? [];
             newExtensions.Add((date, minutes));
             var newConfiguration = userConfigurationCache with { Extensions = [.. newExtensions] };
-            SaveUserConfigurationForDayAsync(newConfiguration).Wait();
+            await SaveUserConfigurationForDayAsync(newConfiguration);
             OnExtensionResponse?.Invoke(this, new(this, minutes));
         }
 
