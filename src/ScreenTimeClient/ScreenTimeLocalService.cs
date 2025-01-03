@@ -19,7 +19,6 @@ namespace ScreenTimeClient
         private DateTimeOffset lastKnownTime;
         private DateTimeOffset nextResetDate;
         private TimeSpan duration;
-        private readonly TimeProvider _timeProvider = timeProvider;
         public DailyConfiguration? configuration;
         private readonly UserStateRegistryProvider _stateProvider = stateProvider;
         private ITimer? callbackTimer;
@@ -49,9 +48,9 @@ namespace ScreenTimeClient
 
             _stateProvider.LoadState(out lastKnownTime, out duration, out lastUserState, out lastMessageShown, out activityState);
             // data corruption issue
-            if (lastKnownTime == DateTimeOffset.MinValue || lastKnownTime.UtcDateTime - duration >= _timeProvider.GetUtcNow())
+            if (lastKnownTime == DateTimeOffset.MinValue || lastKnownTime.UtcDateTime - duration >= timeProvider.GetUtcNow())
             {
-                lastKnownTime = _timeProvider.GetUtcNow();
+                lastKnownTime = timeProvider.GetUtcNow();
                 duration = TimeSpan.Zero;
                 userConfigurationProvider.ResetExtensions();
             }
@@ -59,19 +58,19 @@ namespace ScreenTimeClient
             else if (lastKnownTime.UtcDateTime <= nextResetDate.AddDays(-1) || duration >= TimeSpan.FromDays(1))
             {
                 duration = TimeSpan.Zero;
-                lastKnownTime = _timeProvider.GetUtcNow();
+                lastKnownTime = timeProvider.GetUtcNow();
                 userConfigurationProvider.ResetExtensions();
             }
             // throw out all time between now and the last known state - we have no idea what was happening when the app wasn't running 
             // because the OS isn't giving shutdown signals as we'd expect 
-            lastKnownTime = _timeProvider.GetUtcNow();
+            lastKnownTime = timeProvider.GetUtcNow();
             activityState = UserActivityState.Active;
 
 
             started = true;
             // this should have been called in CreateTimer
-            callbackTimer = _timeProvider.CreateTimer(UpdateInteractiveTime, this, TimeSpan.Zero, TimeSpan.FromSeconds(1));
-            heartbeatTimer = _timeProvider.CreateTimer(LogHeartbeat, this, TimeSpan.FromMinutes(.1), TimeSpan.FromMinutes(1)); 
+            callbackTimer = timeProvider.CreateTimer(UpdateInteractiveTime, this, TimeSpan.Zero, TimeSpan.FromSeconds(1));
+            heartbeatTimer = timeProvider.CreateTimer(LogHeartbeat, this, TimeSpan.FromMinutes(.1), TimeSpan.FromMinutes(1)); 
 
         }
 
@@ -96,11 +95,11 @@ namespace ScreenTimeClient
 
         private DateTimeOffset GetNextResetTime(TimeSpan resetTime)
         {
-            var resetOffset = -(_timeProvider.LocalTimeZone.BaseUtcOffset) + resetTime;
-            var newResetTime = _timeProvider.GetUtcNow().Date + resetOffset;
+            var resetOffset = -(timeProvider.LocalTimeZone.BaseUtcOffset) + resetTime;
+            var newResetTime = timeProvider.GetUtcNow().Date + resetOffset;
             var utcResetTime = new DateTimeOffset(newResetTime, TimeSpan.FromHours(0));
 
-            if (utcResetTime <= _timeProvider.GetUtcNow())
+            if (utcResetTime <= timeProvider.GetUtcNow())
             {
                 logger?.LogInformation("Next reset time is {ResetTime}", utcResetTime.AddDays(1));
                 return utcResetTime.AddDays(1);
@@ -129,7 +128,7 @@ namespace ScreenTimeClient
             if (!started)
                 return; 
             UpdateIdleTime();
-            var currentTime = _timeProvider.GetUtcNow();
+            var currentTime = timeProvider.GetUtcNow();
             var timeSinceLast = currentTime - lastKnownTime;
 
             if (nextResetDate == DateTimeOffset.MinValue)
@@ -187,7 +186,7 @@ namespace ScreenTimeClient
             if (currentUserStatus != status)
             {
                 currentUserStatus = status;
-                OnUserStatusChanged?.Invoke(this, new UserStatusEventArgs(currentUserStatus, _timeProvider.GetUtcNow(), duration));
+                OnUserStatusChanged?.Invoke(this, new UserStatusEventArgs(currentUserStatus, timeProvider.GetUtcNow(), duration));
             }
         }
 
@@ -196,15 +195,15 @@ namespace ScreenTimeClient
         {
             // state change or debounced
             if (stateChanged || 
-                (_timeProvider.GetUtcNow() - lastMessageShown < TimeSpan.FromMinutes(1)))
+                (timeProvider.GetUtcNow() - lastMessageShown < TimeSpan.FromMinutes(1)))
             {
                 return;
             }
-            if ((lastUserState == UserState.Okay) && (_timeProvider.GetUtcNow() - lastMessageShown < TimeSpan.FromMinutes(15)))
+            if ((lastUserState == UserState.Okay) && (timeProvider.GetUtcNow() - lastMessageShown < TimeSpan.FromMinutes(15)))
                 return;
             var message = GetUserMessage();
             OnMessageUpdate?.Invoke(this, new MessageEventArgs(message));
-            lastMessageShown = _timeProvider.GetUtcNow();
+            lastMessageShown = timeProvider.GetUtcNow();
         }
 
         public void EndSession(string reason)
@@ -345,7 +344,7 @@ namespace ScreenTimeClient
                     lock (this)
                     {
                         isIdle = true;
-                        // this.OnUserStatusChanged?.Invoke(this, new UserStatusEventArgs(new UserStatus(duration, "💤", "none", UserState.Paused, TimeSpan.FromMinutes(0)), _timeProvider.GetUtcNow(), duration));
+                        // this.OnUserStatusChanged?.Invoke(this, new UserStatusEventArgs(new UserStatus(duration, "💤", "none", UserState.Paused, TimeSpan.FromMinutes(0)), timeProvider.GetUtcNow(), duration));
                         logger?.LogInformation("User is idle for {Minutes} minutes", idleTime.TotalMinutes);
                         activityState = UserActivityState.Inactive;
                     }
@@ -367,7 +366,7 @@ namespace ScreenTimeClient
             await Task.Run(() =>
             {
                 logger?.LogWarning("Requesting extension for {Minutes} minutes.", minutes);
-                userConfigurationProvider.AddExtension(_timeProvider.GetUtcNow(), minutes);
+                userConfigurationProvider.AddExtension(timeProvider.GetUtcNow(), minutes);
             });
         }
 
@@ -393,7 +392,7 @@ namespace ScreenTimeClient
             await Task.Run(() =>
             {
                 logger?.LogCritical("User time was attempted!");
-                lastKnownTime = _timeProvider.GetUtcNow();
+                lastKnownTime = timeProvider.GetUtcNow();
                 duration = TimeSpan.Zero;
                 if (configuration == null)
                     return;

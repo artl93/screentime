@@ -14,11 +14,11 @@ namespace ScreenTimeClient
         private readonly ToolStripItem? usernameItem;
         private readonly ScreenTimeServiceClient serviceClient;
         private readonly ILogger? logger;
-        private readonly IDailyConfigurationProvider _userConfigurationProvider;
+        private readonly IDailyConfigurationProvider _dailyConfigurationProvider;
         private bool messageIsVisible = false;
         // private bool silentMode = false;
         private bool _disableLock;
-        private bool _enableOnline;
+        private readonly bool _enableOnline;
         private int _lockDelaySeconds;
         private readonly List<ToolStripItem> preLoginItemsList = [];
         private readonly List<ToolStripItem> postLoginItemsList = [];
@@ -31,19 +31,19 @@ namespace ScreenTimeClient
                         IClientConfigurationReader clientConfigurationReader,
                         IScreenTimeStateClient client,
                         SystemLockStateService lockProvider,
-                        IDailyConfigurationProvider userConfigurationProvider,
+                        IDailyConfigurationProvider dailyConfigurationProvider,
                         ScreenTimeServiceClient serviceClient,
                         ILogger? logger)
         {
             this.serviceClient = serviceClient;
             this.logger = logger;
-            _userConfigurationProvider = userConfigurationProvider;
-            var result = _userConfigurationProvider.GetUserConfigurationForDayAsync().Result;
+            _dailyConfigurationProvider = dailyConfigurationProvider;
+            var result = _dailyConfigurationProvider.GetUserConfigurationForDayAsync().Result;
             _disableLock = result.DisableLock;
             var clientConfiguration = clientConfigurationReader.GetConfiguration();
             _enableOnline = clientConfiguration.EnableOnline;
             _lockDelaySeconds = result.DelayLockSeconds;
-            _userConfigurationProvider.OnConfigurationChanged += (s, e) =>
+            _dailyConfigurationProvider.OnConfigurationChanged += (s, e) =>
             {
                 _disableLock = e.Configuration.DisableLock;
                 _lockDelaySeconds = e.Configuration.DelayLockSeconds;
@@ -147,7 +147,7 @@ namespace ScreenTimeClient
 
         private async Task RequestExtensionAsync(int v)
         {
-            await _userConfigurationProvider.RequestExtensionAsync(v);
+            await _dailyConfigurationProvider.RequestExtensionAsync(v);
         }
 
         private void UpdateForLogout()

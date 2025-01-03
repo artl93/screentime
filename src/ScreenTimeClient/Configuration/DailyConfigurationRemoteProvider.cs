@@ -68,7 +68,7 @@ namespace ScreenTimeClient.Configuration
         public void Dispose()
         {
             ((IDisposable)serviceClient).Dispose();
-
+            GC.SuppressFinalize(this);
         }
     }
 }
