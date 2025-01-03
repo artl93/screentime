@@ -4,6 +4,7 @@ using Microsoft.Win32;
 using ScreenTimeClient.Configuration;
 using ScreenTime.Common;
 
+
 namespace ScreenTimeClient
 {
 
@@ -13,7 +14,7 @@ namespace ScreenTimeClient
         private readonly ToolStripItem? usernameItem;
         private readonly ScreenTimeServiceClient serviceClient;
         private readonly ILogger? logger;
-        private readonly IUserConfigurationProvider _userConfigurationProvider;
+        private readonly IDailyConfigurationProvider _userConfigurationProvider;
         private bool messageIsVisible = false;
         // private bool silentMode = false;
         private bool _disableLock;
@@ -26,24 +27,26 @@ namespace ScreenTimeClient
         private bool isLocked = false;
         private Task MessageBoxTask = Task.CompletedTask;
 
-        public HiddenForm(IScreenTimeStateClient client,
-            SystemLockStateService lockProvider,
-            IUserConfigurationProvider userConfigurationProvider,
-            ScreenTimeServiceClient serviceClient,
-            ILogger? logger)
+        public HiddenForm(
+                        IClientConfigurationReader clientConfigurationReader,
+                        IScreenTimeStateClient client,
+                        SystemLockStateService lockProvider,
+                        IDailyConfigurationProvider userConfigurationProvider,
+                        ScreenTimeServiceClient serviceClient,
+                        ILogger? logger)
         {
             this.serviceClient = serviceClient;
             this.logger = logger;
             _userConfigurationProvider = userConfigurationProvider;
             var result = _userConfigurationProvider.GetUserConfigurationForDayAsync().Result;
             _disableLock = result.DisableLock;
-            _enableOnline = result.EnableOnline;
+            var clientConfiguration = clientConfigurationReader.GetConfiguration();
+            _enableOnline = clientConfiguration.EnableOnline;
             _lockDelaySeconds = result.DelayLockSeconds;
             _userConfigurationProvider.OnConfigurationChanged += (s, e) =>
             {
                 _disableLock = e.Configuration.DisableLock;
                 _lockDelaySeconds = e.Configuration.DelayLockSeconds;
-                _enableOnline = e.Configuration.EnableOnline;
                 logger?.LogInformation("Lock {State} by configuration. Delay {Seconds}.", _disableLock ? "disabled" : "enabled", _lockDelaySeconds);
             };
             logger?.LogInformation("Lock {State} by configuration. Delay {Seconds}", _disableLock ? "disabled" : "enabled", _lockDelaySeconds);

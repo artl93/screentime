@@ -5,29 +5,29 @@ using ScreenTime.Common;
 
 namespace ScreenTimeClient.Configuration
 {
-    public class RemoteUserConfigurationProvider(ScreenTimeServiceClient connectionProvider, ILogger<RemoteUserConfigurationProvider> logger) : IUserConfigurationProvider, IDisposable
+    public class DailyConfigurationRemoteProvider(ScreenTimeServiceClient connectionProvider, ILogger<DailyConfigurationRemoteProvider> logger) : IDailyConfigurationProvider, IDisposable
     {
         private readonly ILogger logger = logger;
         private readonly ScreenTimeServiceClient serviceClient = connectionProvider;
 
 
-        private UserConfiguration? userConfigurationCache = null;
-        public event EventHandler<UserConfigurationEventArgs>? OnConfigurationChanged;
-        public event EventHandler<UserConfigurationResponseEventArgs>? OnExtensionResponse;
+        private DailyConfiguration? userConfigurationCache = null;
+        public event EventHandler<DailyConfigurationEventArgs>? OnConfigurationChanged;
+        public event EventHandler<DailyConfigurationResponseEventArgs>? OnExtensionResponse;
 
-        public Task<UserConfiguration> GetConfigurationAsync()
+        public Task<DailyConfiguration> GetConfigurationAsync()
         {
             return serviceClient.GetConfigurationAsync();
         }
 
-        public async Task<UserConfiguration> GetUserConfigurationForDayAsync()
+        public async Task<DailyConfiguration> GetUserConfigurationForDayAsync()
         {
             // fire off request to get configuration asynchronously, but return immediately with the cached value
 
             return await GetConfigurationAsync();
         }
 
-        public Task SaveUserConfigurationForDayAsync(UserConfiguration configuration)
+        public Task SaveUserDailyConfigurationAsync(DailyConfiguration configuration)
         {
             throw new NotImplementedException();
         }
@@ -39,7 +39,7 @@ namespace ScreenTimeClient.Configuration
                 return;
             }
             var newConfiguration = userConfigurationCache with { Extensions = [] };
-            SaveUserConfigurationForDayAsync(newConfiguration).Wait();
+            SaveUserDailyConfigurationAsync(newConfiguration).Wait();
         }
 
         public void AddExtension(DateTimeOffset date, int minutes)
@@ -51,7 +51,7 @@ namespace ScreenTimeClient.Configuration
             var newExtensions = userConfigurationCache.Extensions?.ToList() ?? [];
             newExtensions.Add((date, minutes));
             var newConfiguration = userConfigurationCache with { Extensions = [.. newExtensions] };
-            SaveUserConfigurationForDayAsync(newConfiguration).Wait();
+            SaveUserDailyConfigurationAsync(newConfiguration).Wait();
             OnExtensionResponse?.Invoke(this, new(this, minutes));
         }
 

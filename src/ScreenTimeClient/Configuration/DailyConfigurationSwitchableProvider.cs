@@ -3,29 +3,28 @@
 
 namespace ScreenTimeClient.Configuration
 {
-    public class SwitchableUserConfigurationProvider : IUserConfigurationProvider, IDisposable
+    public class DailyConfigurationSwitchableProvider : IDailyConfigurationProvider, IDisposable
     {
-        private readonly LocalUserConfigurationProvider localProvider;
-        private readonly RemoteUserConfigurationProvider remoteProvider;
-        public event EventHandler<UserConfigurationEventArgs>? OnConfigurationChanged;
-        public event EventHandler<UserConfigurationResponseEventArgs>? OnExtensionResponse;
-        public SwitchableUserConfigurationProvider(RemoteUserConfigurationProvider remoteProvider, LocalUserConfigurationProvider localProvider)
+        private readonly DailyConfigurationLocalProvider localProvider;
+        private readonly DailyConfigurationRemoteProvider remoteProvider;
+        public event EventHandler<DailyConfigurationEventArgs>? OnConfigurationChanged;
+        public event EventHandler<DailyConfigurationResponseEventArgs>? OnExtensionResponse;
+        public DailyConfigurationSwitchableProvider(DailyConfigurationRemoteProvider remoteProvider, DailyConfigurationLocalProvider localProvider)
         {
             this.remoteProvider = remoteProvider;
             this.localProvider = localProvider;
             remoteProvider.OnConfigurationChanged += (sender, args) => OnConfigurationChanged?.Invoke(sender, args);
             remoteProvider.OnExtensionResponse += (sender, args) => OnExtensionResponse?.Invoke(sender, args);
         }
-        public async Task<UserConfiguration> GetUserConfigurationForDayAsync()
+        public async Task<DailyConfiguration> GetUserConfigurationForDayAsync()
         {
             // always enable remote remoteProvider
             var result = await localProvider.GetUserConfigurationForDayAsync();
-            var newResult = result with { EnableOnline = true };
-            return newResult;
+            return result;
         }
-        public Task SaveUserConfigurationForDayAsync(UserConfiguration configuration)
+        public Task SaveUserDailyConfigurationAsync(DailyConfiguration configuration)
         {
-            return localProvider.SaveUserConfigurationForDayAsync(configuration);
+            return localProvider.SaveUserDailyConfigurationAsync(configuration);
         }
         public void ResetExtensions()
         {

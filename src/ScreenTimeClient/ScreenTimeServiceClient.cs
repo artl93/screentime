@@ -126,12 +126,12 @@ namespace ScreenTimeClient
             return "(Invalid username)";
         }
 
-        internal async Task<UserConfiguration> GetConfigurationAsync()
+        internal async Task<DailyConfiguration> GetConfigurationAsync()
         {
             var response = await httpClient.GetAsync(configUrl);
             response.EnsureSuccessStatusCode();
             var content = await response.Content.ReadAsStringAsync();
-            return JsonSerializer.Deserialize<UserConfiguration>(content, options) ?? new UserConfiguration();
+            return JsonSerializer.Deserialize<DailyConfiguration>(content, options) ?? new DailyConfiguration();
 
         }
 

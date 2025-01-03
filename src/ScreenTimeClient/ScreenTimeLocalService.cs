@@ -10,17 +10,17 @@ namespace ScreenTimeClient
 {
 
     public partial class ScreenTimeLocalService(TimeProvider timeProvider,
-                                                IUserConfigurationProvider userConfigurationProvider,
+                                                IDailyConfigurationProvider userConfigurationProvider,
                                                 UserStateRegistryProvider stateProvider,
                                                 IIdleTimeDetector idleDetector, ILogger? logger) 
         : IScreenTimeStateClient, IDisposable, IHostedService
     {
-        private readonly IUserConfigurationProvider userConfigurationProvider = userConfigurationProvider;
+        private readonly IDailyConfigurationProvider userConfigurationProvider = userConfigurationProvider;
         private DateTimeOffset lastKnownTime;
         private DateTimeOffset nextResetDate;
         private TimeSpan duration;
         private readonly TimeProvider _timeProvider = timeProvider;
-        public UserConfiguration? configuration;
+        public DailyConfiguration? configuration;
         private readonly UserStateRegistryProvider _stateProvider = stateProvider;
         private ITimer? callbackTimer;
         private ITimer? heartbeatTimer;
@@ -75,7 +75,7 @@ namespace ScreenTimeClient
 
         }
 
-        private void OnConfigurationChanged(UserConfiguration newConfiguration)
+        private void OnConfigurationChanged(DailyConfiguration newConfiguration)
         {
             if ((configuration != null) && (configuration.ResetTime != newConfiguration.ResetTime))
                 nextResetDate = GetNextResetTime(TimeSpan.Parse($"{newConfiguration.ResetTime}"));
@@ -327,9 +327,9 @@ namespace ScreenTimeClient
             return new UserMessage("Time Logged", $"You have been logged for {interactiveTimeString} today out of {allowedTimeString}", "🕒", "none");
         }
 
-        public Task<UserConfiguration?> GetUserConfigurationAsync()
+        public Task<DailyConfiguration?> GetUserConfigurationAsync()
         {
-            return Task.FromResult<UserConfiguration?>(configuration);
+            return Task.FromResult<DailyConfiguration?>(configuration);
         }
 
         TimeSpan idleTimeLast = TimeSpan.Zero;
@@ -408,7 +408,7 @@ namespace ScreenTimeClient
                 return;
             await Task.Run(async () =>
             {
-                await userConfigurationProvider.SaveUserConfigurationForDayAsync(configuration);
+                await userConfigurationProvider.SaveUserDailyConfigurationAsync(configuration);
             });
         }
 

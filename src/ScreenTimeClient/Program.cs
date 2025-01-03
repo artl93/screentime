@@ -54,9 +54,10 @@ static class Program
                 services.AddSingleton<SystemLockStateService>();
                 services.AddSingleton<ScreenTimeServiceClient>();
                 services.AddSingleton((sp) => new HiddenForm(
+                    sp.GetRequiredService<ClientConfigurationRegistryReader>(),
                     sp.GetRequiredService<IScreenTimeStateClient>(),
                     sp.GetRequiredService<SystemLockStateService>(),
-                    sp.GetRequiredService<IUserConfigurationProvider>(),
+                    sp.GetRequiredService<IDailyConfigurationProvider>(),
                     sp.GetRequiredService<ScreenTimeServiceClient>(),
                     sp.GetRequiredService<ILogger<HiddenForm>>()));
                 services.AddLogging();

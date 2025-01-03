@@ -21,7 +21,7 @@ namespace ScreenTimeClient
             {
                 IScreenTimeStateClient client = 
                     new ScreenTimeLocalService(serviceProvider.GetRequiredService<TimeProvider>(),
-                        serviceProvider.GetRequiredService<IUserConfigurationProvider>(),
+                        serviceProvider.GetRequiredService<IDailyConfigurationProvider>(),
                         serviceProvider.GetRequiredService<UserStateRegistryProvider>(),
                         serviceProvider.GetRequiredService<IIdleTimeDetector>(),
                         serviceProvider.GetRequiredService<ILogger<ScreenTimeLocalService>>());
@@ -33,29 +33,29 @@ namespace ScreenTimeClient
         public static IServiceCollection AddUserConfiguration(this IServiceCollection services, string[] args)
         {
             services.AddSingleton((sp) =>
-                new LocalUserConfigurationProvider(
-                    sp.GetRequiredService<IUserConfigurationReader>(),
+                new DailyConfigurationLocalProvider(
+                    sp.GetRequiredService<IDailyConfigurationReader>(),
                     sp.GetRequiredService<TimeProvider>()));
 
-            services.AddSingleton<RemoteUserConfigurationProvider>();
+            services.AddSingleton<DailyConfigurationRemoteProvider>();
 
             services.AddSingleton((sp) =>
             {
-                return new SwitchableUserConfigurationProvider(
-                    sp.GetRequiredService<RemoteUserConfigurationProvider>(),
-                    sp.GetRequiredService<LocalUserConfigurationProvider>());
+                return new DailyConfigurationSwitchableProvider(
+                    sp.GetRequiredService<DailyConfigurationRemoteProvider>(),
+                    sp.GetRequiredService<DailyConfigurationLocalProvider>());
             });
 
 
-            services.AddSingleton<IUserConfigurationProvider>((sp) =>
+            services.AddSingleton<IDailyConfigurationProvider>((sp) =>
             {
                 if (args.Contains("develop") || args.Contains("live"))
-                    return sp.GetRequiredService<SwitchableUserConfigurationProvider>();
-                return sp.GetRequiredService<LocalUserConfigurationProvider>();
+                    return sp.GetRequiredService<DailyConfigurationSwitchableProvider>();
+                return sp.GetRequiredService<DailyConfigurationLocalProvider>();
             });
 
 
-            services.AddSingleton<IUserConfigurationReader, UserConfigurationRegistryReader>();
+            services.AddSingleton<IDailyConfigurationReader, DailyConfigurationRegistryReader>();
 
             return services;
         }
