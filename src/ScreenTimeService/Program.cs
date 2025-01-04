@@ -13,6 +13,7 @@ using System.Security.Claims;
 using Scalar.AspNetCore;
 using ScreenTimeService;
 using System.Net.Http;
+using ScreenTimeService.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
