@@ -11,6 +11,8 @@ using ScreenTime.Common;
 using System.Reflection.Metadata.Ecma335;
 using System.Security.Claims;
 using Scalar.AspNetCore;
+using ScreenTimeService;
+using System.Net.Http;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -122,19 +124,28 @@ app.MapGet("/configuration", () => Results.Ok(scopeRequiredByApi))
     .RequireAuthorization();
 
 
-var heartbeats = new List<(string, Heartbeat)>() { };
-
-app.MapPut("/heartbeat", (HttpContext httpContext, Heartbeat heartbeat) =>
+app.MapPut("/heartbeat", async (HttpContext httpContext, Heartbeat heartbeat, UserContext db) =>
 {
     httpContext.VerifyUserHasAnyAcceptedScope(scopeRequiredByApi);
-    var nameIdentifier = httpContext.User.GetNameIdentifierId();
-    if (nameIdentifier == null)
-        return Results.Unauthorized();
 
-   
-    heartbeats.Add((nameIdentifier, heartbeat));
+    var user = GetOrEnsureUser(db, httpContext.User);
+    if (user == null)
+    {
+        return Results.NotFound();
+    }
 
-    return Results.Ok();
+    var record = new HeartbeatRecord
+    {
+        UserId = user.Id,
+        DateTime = heartbeat.Timestamp,
+        Duration = heartbeat.Duration,
+        UserState = heartbeat.UserState
+    };
+
+    db.Heartbeats.Add(record);
+    await db.SaveChangesAsync();
+
+    return Results.Ok($"Event added for {user}");
 })
     .WithOpenApi()
     .RequireAuthorization();
@@ -154,3 +165,28 @@ app.MapPut("/heartbeat", (HttpContext httpContext, Heartbeat heartbeat) =>
 
 app.Run();
 
+UserRecord? GetOrEnsureUser(UserContext db, ClaimsPrincipal principal)
+{
+    var displayName = principal.GetDisplayName();
+    var nameIdentifier = principal.GetNameIdentifierId();
+    if (nameIdentifier == null || displayName == null)
+    {
+        throw new InvalidOperationException("Invalid user");
+    }
+    // var user = new ClaimsPrincipal(new ClaimsIdentity(new[] { new Claim(ClaimTypes.Name, nameIdentifier) }));
+
+    var user = db.Users.FirstOrDefault(u => u.NameIdentifier == nameIdentifier);
+    if (user == null)
+    {
+        user = new UserRecord
+        {
+            NameIdentifier = nameIdentifier,
+            UserName = displayName,
+            Email = displayName,
+            CreatedAt = DateTime.Now
+        };
+        db.Users.Add(user);
+        db.SaveChanges();
+    }
+    return user;
+}
