@@ -14,6 +14,7 @@ using Scalar.AspNetCore;
 using ScreenTimeService;
 using System.Net.Http;
 using ScreenTimeService.Models;
+using Microsoft.AspNetCore.Builder;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -78,7 +79,7 @@ app.MapPut("/extensions/request", (HttpContext httpContext, ScreenTime.Common.Ex
     .WithOpenApi()
     .RequireAuthorization();
 
-app.MapPut("/extensions/grant", (HttpContext httpContext, UserContext db) =>
+app.MapPut("extensions/deny", (HttpContext httpContext, Guid[] ids, UserContext db) =>
 {
     httpContext.VerifyUserHasAnyAcceptedScope(scopeRequiredByApi);
     var user = GetOrEnsureUser(db, httpContext.User);
@@ -87,12 +88,84 @@ app.MapPut("/extensions/grant", (HttpContext httpContext, UserContext db) =>
         return Results.NotFound();
     }
 
+    var requests = db.ExtensionRequests
+        .Where(r => ids.Contains(r.Id))
+        .ToList();
 
-    return Results.Ok($" for {user.UserName}.");
+    requests.ForEach(request => request.IsActive = false);
+
+    // get all the users in the requests to notify
+    db.SaveChanges();
+
+
+    var users = db.Users
+        .Where(u => requests.Any(r => r.UserId == u.Id))
+        .ToDictionary(u => u.Id, u => u);
+
+    // notify those users 
+
+
+
+    return Results.Ok($"{user.UserName} denied {requests.Count} requests.");
 })
     .WithOpenApi()
     .RequireAuthorization();
 
+/// <summary>
+/// respond to and dismiss extension requests
+/// </summary>
+app.MapPut("/extensions/approve", (HttpContext httpContext, AdminExtensionGrant requestsToApprove, UserContext db) =>
+{
+    httpContext.VerifyUserHasAnyAcceptedScope(scopeRequiredByApi);
+    var user = GetOrEnsureUser(db, httpContext.User);
+    if (user == null)
+    {
+        return Results.NotFound();
+    }
+
+    var requestingUserId = requestsToApprove.UserId;
+
+    // todo - only allow admin users to grant extensions
+    // todo - only dismiss requests for this particular user being granted time
+
+    var requests = db.ExtensionRequests
+        .Where(r => requestsToApprove.RequestIds.Contains(r.Id) && requestsToApprove.UserId == r.UserId)
+        .ToList();
+
+    db.ExtensionRequests
+        .Where(r => requestsToApprove.RequestIds.Contains(r.Id))
+        .ToList()
+        .ForEach(request => request.IsActive = false);
+
+    db.ExtensionRequestResponses.Add(new ExtensionRequestResponse
+    {
+        GrantedByUserId = user.Id,
+        GrantedForUserId = user.Id,
+        GratedDateTime = TimeProvider.System.GetUtcNow(),
+        GrantedForDate = TimeProvider.System.GetUtcNow(),
+        GrantedDuration = requestsToApprove.Duration,
+        DismissedExtensionRequests = requests
+    });
+
+    db.SaveChanges();
+
+    var userToNotify = db.Users.FirstOrDefault(u => u.Id == requestingUserId);
+    if (userToNotify != null)
+    {
+        // TOSO: asynchronously send approvals to their http listener
+    }
+
+    var grantedRequests = requests.Select(r => new ScreenTime.Common.ExtensionGrant(TimeProvider.System.GetUtcNow(), r.Duration));
+
+    // TOSO: asynchronously send approvals to their http listener
+    return Results.Ok(grantedRequests);
+})
+    .WithOpenApi()
+    .RequireAuthorization();
+
+/// <summary>
+/// Request all active extension requests
+/// </summary>
 app.MapGet("/extensions/requests", (HttpContext httpContext, UserContext db) =>
 {
     httpContext.VerifyUserHasAnyAcceptedScope(scopeRequiredByApi);
@@ -111,7 +184,7 @@ app.MapGet("/extensions/requests", (HttpContext httpContext, UserContext db) =>
     // generate all AdminExtensionRequests
     var adminRequests = requests
         .Select(r => new ScreenTime.Common.AdminExtensionRequest(
-            new User(users[r.UserId].Id, users[r.UserId].Email, users[r.UserId].Email), r.SubmissionDate, r.Duration));
+            r.Id, new User(users[r.UserId].Id, users[r.UserId].Email, users[r.UserId].Email), r.SubmissionDate, r.Duration));
 
 
     return Results.Ok(adminRequests);
