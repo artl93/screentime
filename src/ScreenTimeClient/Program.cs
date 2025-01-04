@@ -4,7 +4,7 @@ using Microsoft.Win32;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Application = System.Windows.Forms.Application;
-using NetEscapades.Extensions.Logging.RollingFile;
+using ScreenTimeClient.Configuration;
 
 
 static class Program
@@ -36,26 +36,34 @@ static class Program
 
     public static IServiceProvider? ServiceProvider { get; private set; }
 
+
     static IHostBuilder CreateHostBuilder(string[] args)
     {
         var builder = Host.CreateDefaultBuilder(args)
             .ConfigureServices((hostContext, services) =>
             {
                 services.AddHostedServices();
-                services.AddScreenTimeClient(args);
-                services.AddUserConfiguration();
+                services.AddScreenTimeClient();
+                services.AddUserConfiguration(args);
                 services.AddLoggingConfiguration();
                 services.AddSingleton<SystemStateEventHandlers>();
                 services.AddSingleton(TimeProvider.System);
                 services.AddSingleton<IIdleTimeDetector, IdleTimeDetector>();
-                services.AddHttpClientConfiguration();
+                services.AddHttpClientConfiguration(args);
                 services.AddSingleton<UserStateRegistryProvider>();
                 services.AddSingleton<SystemLockStateService>();
-                services.AddSingleton<HiddenForm>((sp) => new HiddenForm(
+                services.AddSingleton<ScreenTimeServiceClient>();
+                services.AddSingleton<ClientConfigurationRegistryReader>();
+                services.AddSingleton((sp) => new HiddenForm(
+                    sp.GetRequiredService<ClientConfigurationRegistryReader>(),
                     sp.GetRequiredService<IScreenTimeStateClient>(),
                     sp.GetRequiredService<SystemLockStateService>(),
-                    sp.GetRequiredService<IUserConfigurationProvider>(),
+                    sp.GetRequiredService<IDailyConfigurationProvider>(),
+                    sp.GetRequiredService<ScreenTimeServiceClient>(),
                     sp.GetRequiredService<ILogger<HiddenForm>>()));
+                services.AddLogging();
+
+
             });
             
          return builder;

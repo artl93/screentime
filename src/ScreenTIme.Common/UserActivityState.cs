@@ -1,5 +1,5 @@
 ﻿
-namespace ScreenTimeClient
+namespace ScreenTime.Common
 {
 
     public enum UserActivityState

@@ -1,4 +1,5 @@
 ﻿using Microsoft.Win32;
+using ScreenTime.Common;
 
 namespace ScreenTimeClient
 {
