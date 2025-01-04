@@ -148,12 +148,27 @@ namespace ScreenTimeClient
             {
                 logger.LogError(e, e.Message);
             }
-
-
         }
+
         public void Dispose()
         {
             ((IDisposable)httpClient).Dispose();
+        }
+
+        internal async Task RequestExtension(ExtensionRequest request)
+        {
+            try
+            {
+                var json = JsonSerializer.Serialize(request, options);
+                var content = new StringContent(json, Encoding.UTF8, "application/json");
+                var response = await httpClient.PutAsync(extensionUrl, content);
+                response.EnsureSuccessStatusCode();
+            }
+            catch (Exception e)
+            {
+                logger.LogError(e, e.Message);
+            }
+
         }
     }
 }

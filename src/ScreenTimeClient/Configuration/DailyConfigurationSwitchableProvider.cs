@@ -73,7 +73,7 @@ namespace ScreenTimeClient.Configuration
 
         public Task RequestExtensionAsync(int v)
         {
-            return localProvider.RequestExtensionAsync(v);
+            return remoteProvider.RequestExtensionAsync(v);
         }
 
         public async Task SendHeartbeatAsync(Heartbeat heartbeat)

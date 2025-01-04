@@ -53,70 +53,78 @@ app.UseHttpsRedirection();
 var scopeRequiredByApi = app.Configuration["AzureAd:Scopes"] ?? "";
 
 
-var requests = new Queue<(ClaimsPrincipal, int)>
-{
-};
-app.MapPut("/request/{minutes}", (int minutes, HttpContext httpContext) =>
+app.MapPut("/extensions/request", (HttpContext httpContext, ScreenTime.Common.ExtensionRequest request, UserContext db) =>
 {
     httpContext.VerifyUserHasAnyAcceptedScope(scopeRequiredByApi);
-    requests.Enqueue((httpContext.User, minutes));
-    var result = httpContext.User.GetNameIdentifierId();
 
-    // get total pending requests for this user in terms of minutes
-    var totalMinutes = requests.Where(r => r.Item1 == httpContext.User).Sum(r => r.Item2);
-
-    return Results.Ok(totalMinutes);
-})
-    .WithOpenApi()
-    .RequireAuthorization();
-
-app.MapPut("/grant/{userId}/{minutes}", (string userId, int minutes, HttpContext httpContext) =>
-{
-    httpContext.VerifyUserHasAnyAcceptedScope(scopeRequiredByApi);
-    var user = new ClaimsPrincipal(new ClaimsIdentity(new[] { new Claim(ClaimTypes.Name, userId) }));
-    var request = requests.FirstOrDefault(r => r.Item1 == user);
-    if (request != default)
+    var user = GetOrEnsureUser(db, httpContext.User);
+    if (user == null)
     {
-        requests = new Queue<(ClaimsPrincipal, int)>(requests.Where(r => r != request));
-        // get the total of all requests 
-        var totalMinutes = requests.Sum(r => r.Item2);
-        return Results.Ok(totalMinutes);
+        return Results.NotFound();
     }
-    return Results.NotFound();
-})
-    .WithOpenApi()
-    .RequireAuthorization();
 
-
-app.MapPut("/reject/{userId}", (string userId, HttpContext httpContext) =>
-{
-    httpContext.VerifyUserHasAnyAcceptedScope(scopeRequiredByApi);
-    var user = new ClaimsPrincipal(new ClaimsIdentity(new[] { new Claim(ClaimTypes.Name, userId) }));
-    var request = requests.FirstOrDefault(r => r.Item1 == user);
-    if (request != default)
+    var record = new ScreenTimeService.Models.ExtensionRequest
     {
-        requests = new Queue<(ClaimsPrincipal, int)>(requests.Where(r => r != request));
-        // get the total of all requests 
-        var totalMinutes = requests.Sum(r => r.Item2);
-        return Results.Ok(totalMinutes);
-    }
-    return Results.NotFound();
+        UserId = user.Id,
+        SubmissionDate = TimeProvider.System.GetUtcNow(),
+        Duration = request.Duration,
+        IsActive = true
+    };
+    db.ExtensionRequests.Add(record);
+    db.SaveChanges();
+
+    return Results.Ok($"Extension {record.Id} logged for {user.UserName}.");
 })
     .WithOpenApi()
     .RequireAuthorization();
 
-
-app.MapGet("/pending/{userId}", (string userId, HttpContext httpContext) =>
+app.MapPut("/extensions/grant", (HttpContext httpContext, UserContext db) =>
 {
     httpContext.VerifyUserHasAnyAcceptedScope(scopeRequiredByApi);
-    var user = new ClaimsPrincipal(new ClaimsIdentity(new[] { new Claim(ClaimTypes.Name, userId) }));
-    var totalMinutes = requests.Where(r => r.Item1 == user).Sum(r => r.Item2);
-    return Results.Ok(totalMinutes);
+    var user = GetOrEnsureUser(db, httpContext.User);
+    if (user == null)
+    {
+        return Results.NotFound();
+    }
+
+
+    return Results.Ok($" for {user.UserName}.");
 })
     .WithOpenApi()
     .RequireAuthorization();
 
-app.MapGet("/pending", (HttpContext httpContext) => requests)
+app.MapGet("/extensions/requests", (HttpContext httpContext, UserContext db) =>
+{
+    httpContext.VerifyUserHasAnyAcceptedScope(scopeRequiredByApi);
+
+    // get all active requests 
+    var requests = db.ExtensionRequests
+        .Where(r => r.IsActive)
+        .OrderBy(r => r.SubmissionDate);
+
+
+    // get all users who have requested an extension
+    var users = db.Users
+        .Where(u => requests.Any(r => r.UserId == u.Id))
+        .ToDictionary(u => u.Id, u => u);
+
+    // generate all AdminExtensionRequests
+    var adminRequests = requests
+        .Select(r => new ScreenTime.Common.AdminExtensionRequest(
+            new User(users[r.UserId].Id, users[r.UserId].Email, users[r.UserId].Email), r.SubmissionDate, r.Duration));
+
+
+    return Results.Ok(adminRequests);
+
+})
+    .WithOpenApi()
+    .RequireAuthorization();
+
+app.MapGet("/extensions/approvals", (HttpContext httpContext) =>
+{
+    httpContext.VerifyUserHasAnyAcceptedScope(scopeRequiredByApi);
+    return Results.InternalServerError();
+})
     .WithOpenApi()
     .RequireAuthorization();
 
