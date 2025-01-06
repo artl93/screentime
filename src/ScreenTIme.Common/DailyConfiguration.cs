@@ -1,18 +1,15 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 
-namespace ScreenTimeClient
+namespace ScreenTime.Common
 {
-    public record class UserConfiguration(
-            string Name,
+    public record DailyConfiguration(
             int DailyLimitMinutes = 60,
             int WarningTimeMinutes = 10,
-            int WarningIntervalSeconds = 60,
             int GraceMinutes = 5,
             string ResetTime = "06:00",
             bool DisableLock = false,
             int DelayLockSeconds = 10,
-            bool EnableOnline = false,
-            List<(DateTimeOffset, int)>? Extensions = null) : IEquatable<UserConfiguration>, IComparable<UserConfiguration>
+            List<(DateTimeOffset, int)>? Extensions = null) : IEquatable<DailyConfiguration>, IComparable<DailyConfiguration>
     {
         public TimeSpan TotalTimeAllowed
         {
@@ -46,19 +43,14 @@ namespace ScreenTimeClient
             }
         }
 
-        public int CompareTo(UserConfiguration? other)
+        public int CompareTo(DailyConfiguration? other)
         {
             throw new Exception();
         }
 
-        virtual public bool Equals(UserConfiguration? other)
+        virtual public bool Equals(DailyConfiguration? other)
         {
-            // throw new Exception();
             if (other == null)
-            {
-                return false;
-            }
-            if (Name != other.Name)
             {
                 return false;
             }
@@ -67,10 +59,6 @@ namespace ScreenTimeClient
                 return false;
             }
             if (WarningTimeMinutes != other.WarningTimeMinutes)
-            {
-                return false;
-            }
-            if (WarningIntervalSeconds != other.WarningIntervalSeconds)
             {
                 return false;
             }
@@ -87,10 +75,6 @@ namespace ScreenTimeClient
                 return false;
             }
             if (DelayLockSeconds != other.DelayLockSeconds)
-            {
-                return false;
-            }
-            if (EnableOnline != other.EnableOnline)
             {
                 return false;
             }

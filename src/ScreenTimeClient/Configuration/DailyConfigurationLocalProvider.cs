@@ -1,17 +1,18 @@
-﻿
+﻿using ScreenTime.Common;
 
-namespace ScreenTimeClient
+namespace ScreenTimeClient.Configuration
 {
-    public class UserConfigurationProvider : IUserConfigurationProvider, IDisposable
+
+    public class DailyConfigurationLocalProvider : IDailyConfigurationProvider, IDisposable
     {
-        public event EventHandler<UserConfigurationEventArgs>? OnConfigurationChanged;
-        public event EventHandler<UserConfigurationResponseEventArgs>? OnExtensionResponse;
-        UserConfiguration? userConfigurationCache = null;
+        public event EventHandler<DailyConfigurationEventArgs>? OnConfigurationChanged;
+        public event EventHandler<DailyConfigurationResponseEventArgs>? OnExtensionResponse;
+        DailyConfiguration? userConfigurationCache = null;
         private readonly ITimer? timer;
         private bool disposedValue;
-        private readonly IUserConfigurationReader reader;
+        private readonly IDailyConfigurationReader reader;
 
-        public UserConfigurationProvider(IUserConfigurationReader reader, TimeProvider? timeProvider = null)
+        public DailyConfigurationLocalProvider(IDailyConfigurationReader reader, TimeProvider? timeProvider = null)
         {
             this.reader = reader;
             userConfigurationCache = reader.GetConfiguration();
@@ -20,7 +21,8 @@ namespace ScreenTimeClient
 
         private void OnCheckForUpdates(object? state)
         {
-            if (!disposedValue) {
+            if (!disposedValue)
+            {
                 var configuration = reader.GetConfiguration();
                 if (userConfigurationCache != configuration)
                 {
@@ -37,13 +39,13 @@ namespace ScreenTimeClient
             }
         }
 
-        public Task<UserConfiguration> GetUserConfigurationForDayAsync()
+        public Task<DailyConfiguration> GetUserConfigurationForDayAsync()
         {
             var configuration = reader.GetConfiguration();
             return Task.FromResult(configuration);
         }
 
-        public async Task SaveUserConfigurationForDayAsync(UserConfiguration configuration)
+        public async Task SaveUserDailyConfigurationAsync(DailyConfiguration configuration)
         {
             await Task.Run(() =>
             {
@@ -56,20 +58,6 @@ namespace ScreenTimeClient
             }).ConfigureAwait(false);
         }
 
-        protected virtual void Dispose(bool disposing)
-        {
-            if (!disposedValue)
-            {
-                if (disposing)
-                {
-                    timer?.Dispose();
-                }
-
-                // TODO: free unmanaged resources (unmanaged objects) and override finalizer
-                // TODO: set large fields to null
-                disposedValue = true;
-            }
-        }
 
         public void ResetExtensions()
         {
@@ -78,7 +66,7 @@ namespace ScreenTimeClient
                 return;
             }
             var newConfiguration = userConfigurationCache with { Extensions = [] };
-            SaveUserConfigurationForDayAsync(newConfiguration).Wait();
+            SaveUserDailyConfigurationAsync(newConfiguration).Wait();
         }
 
         public void AddExtension(DateTimeOffset date, int minutes)
@@ -90,17 +78,21 @@ namespace ScreenTimeClient
             var newExtensions = userConfigurationCache.Extensions?.ToList() ?? [];
             newExtensions.Add((date, minutes));
             var newConfiguration = userConfigurationCache with { Extensions = [.. newExtensions] };
-            SaveUserConfigurationForDayAsync(newConfiguration).Wait();
+            SaveUserDailyConfigurationAsync(newConfiguration).Wait();
             OnExtensionResponse?.Invoke(this, new(this, minutes));
         }
 
-
-        // // TODO: override finalizer only if 'Dispose(bool disposing)' has code to free unmanaged resources
-        // ~UserConfigurationProvider()
-        // {
-        //     // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
-        //     Dispose(disposing: false);
-        // }
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!disposedValue)
+            {
+                if (disposing)
+                {
+                    timer?.Dispose();
+                }
+                disposedValue = true;
+            }
+        }
 
         public void Dispose()
         {
@@ -109,5 +101,15 @@ namespace ScreenTimeClient
             GC.SuppressFinalize(this);
         }
 
+        public Task RequestExtensionAsync(int v)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task SendHeartbeatAsync(Heartbeat _)
+        {
+            // goes nowhere, does nothing
+            return Task.CompletedTask;
+        }
     }
 }

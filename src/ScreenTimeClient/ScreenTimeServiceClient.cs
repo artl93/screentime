@@ -1,176 +1,266 @@
-﻿using Microsoft.Extensions.DependencyInjection;
-using ScreenTimeClient;
-using System;
-using System.Collections.Generic;
-using System.Linq;
+﻿
+using Microsoft.Extensions.Logging;
+using Microsoft.Identity.Client;
+using Microsoft.Identity.Client.Extensions.Msal;
+using ScreenTime.Common;
+using System.Diagnostics;
+using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
-using System.Threading.Tasks;
-using static System.Windows.Forms.VisualStyles.VisualStyleElement.TaskbarClock;
+using Microsoft.AspNetCore.SignalR.Client;
 
 namespace ScreenTimeClient
 {
-    /// <summary>
-    /// A client for the ScreenTimeService
-    /// 
-    /// </summary>
-    internal class ScreenTimeServiceClient(HttpClient client) : IScreenTimeStateClient, IDisposable
+    public class UserMessageEventArgs(object Sender, UserMessage Message) : EventArgs 
     {
-        enum State
+        public UserMessage Message { get; } = Message;
+        public object Sender { get; } = Sender;
+    }
+
+    public class ScreenTimeServiceClient : IDisposable
+    {
+        private const string cacheFileExtension = ".msalcache.bin";
+        private readonly HttpClient httpClient;
+        private readonly ILogger logger;
+        private IPublicClientApplication? publicClientApp;
+        const string configUrl = "/configuration";
+        const string extensionUrl = "/extensions/request";
+        const string profileUrl = "/profile/";
+        const string heartbeatUrl = "heartbeat";
+        private readonly HubConnection connection;
+        public event EventHandler<UserMessageEventArgs>? OnMessage;
+
+        public ScreenTimeServiceClient(IHttpClientFactory httpClientFactory, HubConnection connection, ILogger<ScreenTimeServiceClient> logger)
         {
-            active,
-            inactive
-        }
+            this.httpClient = httpClientFactory.CreateClient("shared");
+            this.connection = connection;
+            this.logger = logger;
+            connection.Closed += error => Task.CompletedTask;
 
-        State currentState = State.inactive;
-
-        readonly JsonSerializerOptions options = new()
-        {
-            PropertyNamingPolicy = JsonNamingPolicy.CamelCase
-        };
-        private bool disposedValue;
-        private readonly HttpClient _client = client;
-
-        public event EventHandler<MessageEventArgs>? OnDayRollover;
-        public event EventHandler<UserStatusEventArgs>? OnTimeUpdate;
-        public event EventHandler<UserStatusEventArgs>? OnUserStatusChanged;
-        public event EventHandler<MessageEventArgs>? OnMessageUpdate;
-        public event EventHandler<ComputerStateEventArgs>? EventHandlerEnsureComputerState;
-
-        public void StartSession(string _)
-        {
-            if (currentState == State.active)
+            connection.Reconnecting += error =>
             {
-                return;
-            }
+                Debug.Assert(connection.State == HubConnectionState.Reconnecting);
 
-            currentState = State.active;
-            // _ = _client.PutAsync($"events/start/{Environment.UserName}", null).;
+                // Notify users the connection was lost and the client is reconnecting.
+                // Start queuing or dropping messages.
+
+                logger?.LogInformation(error?.Message);
+
+                return Task.CompletedTask;
+            };
+
+            connection.Reconnected += connectionId =>
+            {
+                Debug.Assert(connection.State == HubConnectionState.Connected);
+
+                // Notify users the connection was reestablished.
+                // Start dequeuing messages queued while reconnecting if any.
+
+                return Task.CompletedTask;
+            };
+            connection.On<UserMessage>("Message", (message) =>
+            {
+                OnMessage?.Invoke(this, new UserMessageEventArgs(this, message));
+            });
         }
 
-        public async Task<UserConfiguration?> GetUserConfigurationAsync()
+        public static async Task<bool> ConnectWithRetryAsync(HubConnection connection, CancellationToken token)
         {
+            // Keep trying to until we can start or the token is canceled.
+            while (true)
+            {
+                try
+                {
+                    await connection.StartAsync(token);
+                    Debug.Assert(connection.State == HubConnectionState.Connected);
+                    return true;
+                }
+                catch when (token.IsCancellationRequested)
+                {
+                    return false;
+                }
+                catch
+                {
+                    // Failed to connect, trying again in 5000 ms.
+                    Debug.Assert(connection.State == HubConnectionState.Disconnected);
+                    await Task.Delay(5000);
+                }
+            }
+        }
+
+
+
+        private readonly JsonSerializerOptions options = new()
+        {
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+            WriteIndented = true
+        };
+
+        public bool IsLoggedIn { get; private set; } = false;
+
+        public async Task<bool> LoginAsync(bool silent = false)
+        {
+
+            var app = GetClientApp();
+
+            var accounts = await app.GetAccountsAsync();
+            var scopes = new string[] { "user.read", "api://b1982a95-6b93-46ca-844c-f0594227e2d7/access_as_user" };
+            AuthenticationResult? result = null;
+
             try
             {
-                var response = await _client.GetAsync($"configuration/{Environment.UserName}");
-                var message = await response.Content.ReadAsStringAsync();
-                return JsonSerializer.Deserialize<UserConfiguration>(message, options);
+                if (accounts.Any())
+                    result = app.AcquireTokenSilent(scopes, accounts.FirstOrDefault()).ExecuteAsync().Result;
+                else if (!silent)
+                    result = app.AcquireTokenInteractive(scopes).ExecuteAsync().Result;
+                if (result != null)
+                {
+                    logger?.LogInformation("Login result: {Result}", result);
+                    var token = result.AccessToken;
+                    if (result != null && !string.IsNullOrEmpty(token))
+                    {
+                        httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+                        if (connection.State != HubConnectionState.Connected)
+                        {
+                            connection.StartAsync(CancellationToken.None).RunSynchronously();
+                        }
+                        IsLoggedIn = true;
+                        return true;
+                    }
+                }
             }
             catch (Exception e)
             {
-                System.Diagnostics.Debug.WriteLine(e);
-                return null;
+                IsLoggedIn = false;
+                await LogoutAsync();
+                logger?.LogError(e, "Login error: {Message}", e.Message);
             }
+            // await ConnectWithRetryAsync(connection, CancellationToken.None);
+
+            return false;
+
         }
 
-        public void EndSession(string _)
+        public async Task SendExtensionRequestAsync(int minutes)
         {
-            if (currentState == State.inactive)
-            {
+            var request = new ExtensionRequest(TimeSpan.FromMinutes(minutes));
+            await RequestExtensionAsync(request);
+        }
+
+        public async Task LogoutAsync()
+        {
+            if (!IsLoggedIn)
                 return;
-            }
-            currentState = State.inactive;
-            // _ = await _client.PutAsync($"events/end/{Environment.UserName}", null);
-        }
+            if (connection.State == HubConnectionState.Connected)
+                await connection.StopAsync();
 
-        public async Task<UserStatus?> GetInteractiveTimeAsync()
-        {
-            var response = await _client.GetAsync($"status/{Environment.UserName}");
-            var message = await response.Content.ReadAsStringAsync();
-            return JsonSerializer.Deserialize<UserStatus>(message, options);
-        }
-
-        public async Task<UserMessage?> GetMessage()
-        {
-            var messageResponse = await _client.GetAsync($"message/{Environment.UserName}");
-            var message = await messageResponse.Content.ReadAsStringAsync();
-            return JsonSerializer.Deserialize<UserMessage>(message, options);
-        }
-
-        protected virtual void Dispose(bool disposing)
-        {
-            if (!disposedValue)
+            var app = GetClientApp();
+            var accounts = await app.GetAccountsAsync();
+            foreach (var account in accounts)
             {
-                if (disposing)
-                {
-                    // Dispose managed state (managed objects)
-                    _client.Dispose();
-                }
-
-                // Free unmanaged resources (unmanaged objects) and override finalizer
-                // Set large fields to null
-                disposedValue = true;
+                await app.RemoveAsync(account);
             }
+            IsLoggedIn = false;
+
+            httpClient.DefaultRequestHeaders.Authorization = null;  
         }
 
-        // // TODO: override finalizer only if 'Dispose(bool disposing)' has code to free unmanaged resources
-        // ~ScreenTimeServiceClient()
-        // {
-        //     // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
-        //     Dispose(disposing: false);
-        // }
+
+        private IPublicClientApplication GetClientApp()
+        {
+            if (publicClientApp == null)
+            {
+                publicClientApp = PublicClientApplicationBuilder
+                    // .Create("b1982a95-6b93-46ca-844c-f0594227e2d7")
+                    .Create("4eb97520-4902-4817-ab35-ae38739253ba")
+                    .WithClientId("b1982a95-6b93-46ca-844c-f0594227e2d7")
+                    .WithAuthority("https://login.microsoftonline.com/4eb97520-4902-4817-ab35-ae38739253ba/")
+                    .WithDefaultRedirectUri()
+                    .WithClientName("ScreenTime taskbar client")
+                    .WithClientVersion(System.Reflection.Assembly.GetExecutingAssembly().GetName().Version?.ToString())
+                    .Build();
+                MsalCacheHelper cacheHelper = CreateCacheHelperAsync().GetAwaiter().GetResult();
+
+                // Let the cache helper handle MSAL's cache, otherwise the user will be prompted to sign-in every time.
+                cacheHelper.RegisterCache(publicClientApp.UserTokenCache);
+            }
+            return publicClientApp;
+        }
+
+        private static async Task<MsalCacheHelper> CreateCacheHelperAsync()
+        {
+            var storageProperties = new StorageCreationPropertiesBuilder(
+                              System.Reflection.Assembly.GetExecutingAssembly().GetName().Name + cacheFileExtension,
+                              MsalCacheHelper.UserRootDirectory)
+                                .Build();
+
+            MsalCacheHelper cacheHelper = await MsalCacheHelper.CreateAsync(
+                        storageProperties,
+                        new TraceSource("MSAL.CacheTrace"))
+                     .ConfigureAwait(false);
+
+            return cacheHelper;
+        }
+
+        public async Task<string> GetUsernameAsync()
+        {
+            var app = GetClientApp();
+            var accounts = await app.GetAccountsAsync();
+            if (accounts.Any())
+            {
+                return accounts.First().Username;
+            }
+            return "(Invalid username)";
+        }
+
+        internal async Task<DailyConfiguration> GetConfigurationAsync()
+        {
+            var response = await httpClient.GetAsync(configUrl);
+            response.EnsureSuccessStatusCode();
+            var content = await response.Content.ReadAsStringAsync();
+            return JsonSerializer.Deserialize<DailyConfiguration>(content, options) ?? new DailyConfiguration();
+
+        }
+
+        internal async Task SendHeartbeatAsync(Heartbeat heartbeat)
+        {
+            try
+            {
+                var json = JsonSerializer.Serialize(heartbeat, options);
+                var content = new StringContent(json, Encoding.UTF8, "application/json");
+                var response = await httpClient.PutAsync(heartbeatUrl, content);
+                response.EnsureSuccessStatusCode();
+            }
+            catch (Exception e)
+            {
+                logger.LogError(e, e.Message);
+            }
+        }
 
         public void Dispose()
         {
-            // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
-            Dispose(disposing: true);
-            GC.SuppressFinalize(this);
+            ((IDisposable)httpClient).Dispose();
         }
 
-        internal IScreenTimeStateClient SetBaseAddress(string v)
+        internal async Task RequestExtensionAsync(ExtensionRequest request)
         {
-            _client.BaseAddress = new Uri(v);
-            return this;
+            try
+            {
+                var json = JsonSerializer.Serialize(request, options);
+                var content = new StringContent(json, Encoding.UTF8, "application/json");
+                var response = await httpClient.PutAsync(extensionUrl, content);
+                response.EnsureSuccessStatusCode();
+            }
+            catch (Exception e)
+            {
+                logger.LogError(e, e.Message);
+            }
+
         }
 
-        public void Reset()
+        internal Task<string?> GetAccessTokenAsync()
         {
-            throw new NotImplementedException();
-        }
-
-        public Task StartAsync(CancellationToken cancellationToken)
-        {
-            throw new NotImplementedException();
-        }
-
-        public Task StopAsync(CancellationToken cancellationToken)
-        {
-            throw new NotImplementedException();
-        }
-
-        public void EndSessionAsync(string reason)
-        {
-            throw new NotImplementedException();
-        }
-
-        public void StartSessionAsync(string reason)
-        {
-            throw new NotImplementedException();
-        }
-
-        public void RequestExtension(int minutes)
-        {
-            throw new NotImplementedException();
-        }
-
-        public Task RequestExtensionAsync(int minutes)
-        {
-            throw new NotImplementedException();
-        }
-
-        public Task ResetAsync()
-        {
-            throw new NotImplementedException();
-        }
-
-        public Task SaveCurrentConfigurationAsync()
-        {
-            throw new NotImplementedException();
-        }
-
-        public UserActivityState GetActivityState()
-        {
-            throw new NotImplementedException();
+            return Task.FromResult(httpClient.DefaultRequestHeaders.Authorization?.Parameter);
         }
     }
 }

@@ -1,4 +1,5 @@
 ﻿using ScreenTimeClient;
+using ScreenTime.Common;
 
 namespace ScreenTimeClient
 {

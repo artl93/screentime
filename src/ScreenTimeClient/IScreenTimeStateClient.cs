@@ -1,6 +1,6 @@
 ﻿
 using Microsoft.Extensions.Hosting;
-using ScreenTimeClient;
+using ScreenTime.Common;
 
 namespace ScreenTimeClient
 {
@@ -16,7 +16,7 @@ namespace ScreenTimeClient
         public void EndSession(string reason);
         public Task<UserStatus?> GetInteractiveTimeAsync();
         public Task<UserMessage?> GetMessage();
-        public Task<UserConfiguration?> GetUserConfigurationAsync();
+        public Task<DailyConfiguration?> GetUserConfigurationAsync();
         public Task RequestExtensionAsync(int minutes);
         public Task ResetAsync();
         public Task SaveCurrentConfigurationAsync();
