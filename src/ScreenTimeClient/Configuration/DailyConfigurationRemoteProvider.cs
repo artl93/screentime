@@ -58,7 +58,7 @@ namespace ScreenTimeClient.Configuration
         public Task RequestExtensionAsync(int time)
         {
             var extension = new ExtensionRequest(TimeSpan.FromMinutes(time));
-            return connectionProvider.RequestExtension(extension);
+            return connectionProvider.RequestExtensionAsync(extension);
         }
 
         public async Task SendHeartbeatAsync(Heartbeat heartbeat)

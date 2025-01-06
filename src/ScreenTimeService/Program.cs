@@ -15,6 +15,7 @@ using ScreenTimeService;
 using System.Net.Http;
 using ScreenTimeService.Models;
 using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.SignalR;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -28,7 +29,7 @@ builder.Services.AddAuthorization();
 
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
-builder.Services.AddAuthorization();
+builder.Services.AddSignalR();
 
 var app = builder.Build();
 
@@ -205,6 +206,24 @@ app.MapGet("/configuration", () => Results.Ok(scopeRequiredByApi))
     .WithOpenApi()
     .RequireAuthorization();
 
+app.MapPut("/message", async (HttpContext httpContext, string username, UserMessage message, UserContext db) =>
+{
+    httpContext.VerifyUserHasAnyAcceptedScope(scopeRequiredByApi);
+    // TODO - fix the 
+    var identifier = db.Users.FirstOrDefault(u => u.Email == username)?.NameIdentifier;
+
+    if (identifier == null)
+    {
+        return Results.NotFound();
+    }
+    var hub = httpContext.RequestServices.GetRequiredService<IHubContext<ScreenTimeHub>>();
+
+    await hub.Clients.User(identifier).SendAsync("Message", message);
+    return Results.Ok($"Message sent to {username}");
+})
+    .WithOpenApi()
+    .RequireAuthorization();
+
 
 app.MapPut("/heartbeat", async (HttpContext httpContext, Heartbeat heartbeat, UserContext db) =>
 {
@@ -244,6 +263,7 @@ app.MapPut("/heartbeat", async (HttpContext httpContext, Heartbeat heartbeat, Us
 //})
 //.WithOpenApi()
 //.RequireAuthorization();
+app.MapHub<ScreenTimeHub>("/hub");
 
 app.Run();
 

@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk.Web">
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
 
   <PropertyGroup>
     <TargetFramework>net9.0</TargetFramework>
@@ -14,6 +14,10 @@
     <PackageReference Include="Microsoft.Identity.Web.MicrosoftGraph" Version="3.5.0" />
     <PackageReference Include="Microsoft.Identity.Web.UI" Version="3.5.0" />
     <PackageReference Include="Microsoft.Identity.Web.DownstreamApi" Version="3.5.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\ScreenTIme.Common\ScreenTIme.Common.csproj" />
   </ItemGroup>
 
 </Project>

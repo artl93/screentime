@@ -143,6 +143,9 @@ namespace ScreenTimeClient
                     UpdateForLogout();
                 }
             }
+
+            serviceClient.OnMessage += (s, m) => ShowMessage(m.Message);
+
         }
 
         private async Task RequestExtensionAsync(int v)

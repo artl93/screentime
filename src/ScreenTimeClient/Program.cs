@@ -5,6 +5,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Application = System.Windows.Forms.Application;
 using ScreenTimeClient.Configuration;
+using Microsoft.AspNetCore.SignalR.Client;
 
 
 static class Program

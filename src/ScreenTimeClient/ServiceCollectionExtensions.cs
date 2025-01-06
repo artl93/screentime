@@ -2,6 +2,8 @@
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Hosting;
 using ScreenTimeClient.Configuration;
+using Microsoft.AspNetCore.SignalR.Client;
+using Microsoft.VisualBasic;
 
 namespace ScreenTimeClient
 {
@@ -17,6 +19,7 @@ namespace ScreenTimeClient
 
         public static IServiceCollection AddScreenTimeClient(this IServiceCollection services)
         {
+
             services.AddSingleton(serviceProvider =>
             {
                 IScreenTimeStateClient client = 
@@ -80,12 +83,29 @@ namespace ScreenTimeClient
 
         public static IServiceCollection AddHttpClientConfiguration(this IServiceCollection services, string[] args)
         {
+            var baseUrl = args.Contains("develop") ? "https://localhost:7115" : "https://screentime.azurewebsites.net";
+            var baseAddress = new Uri(baseUrl);
+
             services.AddHttpClient("shared", client =>
             {
                 client.Timeout = TimeSpan.FromSeconds(args.Contains("develop") ? 10 : 20);
-                client.BaseAddress = args.Contains("develop") ? new Uri("https://localhost:7115") : new Uri("https://screentime.azurewebsites.net");
+                client.BaseAddress = baseAddress;
                 client.DefaultRequestHeaders.Accept.Add(new System.Net.Http.Headers.MediaTypeWithQualityHeaderValue("application/json"));
                 client.DefaultRequestHeaders.Add("User-Agent", "ScreenTime");
+            });
+            services.AddSingleton(sp =>
+            {
+                HubConnection connection = new HubConnectionBuilder()
+                    .WithAutomaticReconnect()
+                    .WithUrl($"{baseUrl}/hub", (options) => 
+                    {
+                        options.AccessTokenProvider = () => sp.GetRequiredService<ScreenTimeServiceClient>().GetAccessTokenAsync();
+                    })
+                    .Build();
+                if (connection == null)
+                    throw new Exception("Failed to create hub connection");
+
+                return connection;
             });
             return services;
         }
