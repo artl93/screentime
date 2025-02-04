@@ -1,5 +1,4 @@
-﻿
-using Microsoft.Extensions.Logging;
+﻿using Microsoft.Extensions.Logging;
 using Microsoft.Identity.Client;
 using Microsoft.Identity.Client.Extensions.Msal;
 using ScreenTime.Common;
@@ -213,23 +212,18 @@ namespace ScreenTimeClient
             return "(Invalid username)";
         }
 
+        // Updated to use SignalR hub call.
         internal async Task<DailyConfiguration> GetConfigurationAsync()
         {
-            var response = await httpClient.GetAsync(configUrl);
-            response.EnsureSuccessStatusCode();
-            var content = await response.Content.ReadAsStringAsync();
-            return JsonSerializer.Deserialize<DailyConfiguration>(content, options) ?? new DailyConfiguration();
-
+            return await connection.InvokeAsync<DailyConfiguration>("GetConfiguration");
         }
 
+        // Updated to use SignalR hub call.
         internal async Task SendHeartbeatAsync(Heartbeat heartbeat)
         {
             try
             {
-                var json = JsonSerializer.Serialize(heartbeat, options);
-                var content = new StringContent(json, Encoding.UTF8, "application/json");
-                var response = await httpClient.PutAsync(heartbeatUrl, content);
-                response.EnsureSuccessStatusCode();
+                await connection.InvokeAsync("SendHeartbeat", heartbeat);
             }
             catch (Exception e)
             {
@@ -242,20 +236,10 @@ namespace ScreenTimeClient
             ((IDisposable)httpClient).Dispose();
         }
 
+        // Updated to use SignalR hub call.
         internal async Task RequestExtensionAsync(ExtensionRequest request)
         {
-            try
-            {
-                var json = JsonSerializer.Serialize(request, options);
-                var content = new StringContent(json, Encoding.UTF8, "application/json");
-                var response = await httpClient.PutAsync(extensionUrl, content);
-                response.EnsureSuccessStatusCode();
-            }
-            catch (Exception e)
-            {
-                logger.LogError(e, e.Message);
-            }
-
+            await connection.InvokeAsync("RequestExtension", request);
         }
 
         internal Task<string?> GetAccessTokenAsync()

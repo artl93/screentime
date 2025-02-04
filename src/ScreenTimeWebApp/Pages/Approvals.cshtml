@@ -1,0 +1,91 @@
+@page
+@model ApprovalsModel
+@{
+    ViewData["Title"] = "Pending Approvals";
+}
+<h1>@ViewData["Title"]</h1>
+
+<button id="refreshBtn">Refresh Approvals</button>
+<div id="approvals-container">
+    <!-- Pending approval groups will be rendered here -->
+</div>
+
+@section Scripts {
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/7.0.5/signalr.min.js"></script>
+    <script>
+        // Create a SignalR connection.
+        const connection = new signalR.HubConnectionBuilder()
+            .withUrl("/hub")
+            .build();
+
+        // Render grouped approvals.
+        connection.on("GroupedPendingApprovalsResponse", function (groups) {
+            const container = document.getElementById("approvals-container");
+            container.innerHTML = "";
+            groups.forEach(group => {
+                let groupDiv = document.createElement("div");
+                groupDiv.innerHTML = `<h3>User: ${group.User.UserName} (${group.User.Email})</h3>`;
+                group.Requests.forEach(r => {
+                    let reqDiv = document.createElement("div");
+                    reqDiv.dataset.requestId = r.Id;
+                    reqDiv.innerHTML = `
+                        <span>Request ID: ${r.Id} | Submitted: ${new Date(r.SubmissionDate).toLocaleString()} | Duration: ${r.Duration}</span>
+                        <input type="number" min="0" placeholder="Approved minutes" style="width:80px" />
+                        <button class="approveBtn">Approve</button>
+                        <button class="denyBtn">Deny</button>
+                    `;
+                    groupDiv.appendChild(reqDiv);
+                });
+                container.appendChild(groupDiv);
+            });
+        });
+
+        async function startConnection() {
+            try {
+                await connection.start();
+                await connection.invoke("GetGroupedPendingApprovals");
+            } catch (err) {
+                console.error(err.toString());
+                setTimeout(startConnection, 5000);
+            }
+        }
+        startConnection();
+
+        document.getElementById("refreshBtn").addEventListener("click", async function () {
+            await connection.invoke("GetGroupedPendingApprovals");
+        });
+
+        // Helper to format minutes into hh:mm:ss (assumes minutes less than 60).
+        function formatDuration(minutes) {
+            let mins = parseInt(minutes, 10);
+            if (isNaN(mins) || mins < 0) return null;
+            return "00:" + String(mins).padStart(2, "0") + ":00";
+        }
+
+        // Delegate clicks for approve/deny.
+        document.getElementById("approvals-container").addEventListener("click", async function (e) {
+            if (e.target.classList.contains("approveBtn") || e.target.classList.contains("denyBtn")) {
+                let reqDiv = e.target.parentElement;
+                const requestId = reqDiv.dataset.requestId;
+                let input = reqDiv.querySelector("input");
+                let decision = { RequestId: requestId, ApprovedDuration: null };
+                if (e.target.classList.contains("approveBtn")) {
+                    const durationStr = formatDuration(input.value);
+                    if (!durationStr) {
+                        alert("Enter valid approved minutes");
+                        return;
+                    }
+                    decision.ApprovedDuration = durationStr;
+                }
+                // Process individual decision via a one-item array.
+                try {
+                    await connection.invoke("ProcessExtensionDecisions", [decision]);
+                    // Refresh the list after processing.
+                    await connection.invoke("GetGroupedPendingApprovals");
+                } catch (err) {
+                    console.error(err.toString());
+                }
+            }
+        });
+    </script>
+}
