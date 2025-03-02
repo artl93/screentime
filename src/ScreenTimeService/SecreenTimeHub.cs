@@ -3,6 +3,7 @@ using ScreenTime.Common;
 using System.Security.Claims;
 using Microsoft.Extensions.DependencyInjection;
 using System.Linq;
+using ScreenTimeService.Models;
 
 namespace ScreenTimeService
 {
@@ -50,7 +51,7 @@ namespace ScreenTimeService
         }
 
         // New hub method to request an extension.
-        public async Task RequestExtension(ExtensionRequest request)
+        public async Task RequestExtension(ScreenTime.Common.ExtensionRequest request)
         {
             var httpContext = Context.GetHttpContext();
             var db = httpContext.RequestServices.GetRequiredService<UserContext>();
